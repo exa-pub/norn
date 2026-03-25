@@ -17,13 +17,17 @@
     }
   },
   "runArgs": ["--privileged"],
-  "postCreateCommand": "sudo apt-get update -y && sudo apt-get install -y make",
+  "remoteEnv": {
+    "WORKSPACE_FOLDER": "${containerWorkspaceFolder}"
+  },
+  "postCreateCommand": "sh .devcontainer/postCreate.sh",
   "customizations": {
     "vscode": {
       "extensions": [
         "golang.go",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "anthropic.claude-code"
       ]
     }
   }
