@@ -17,11 +17,12 @@ enum ContainerStatus {
 }
 
 message Container {
-  string          id            = 1;
-  string          docker_id     = 2;
-  ContainerStatus status        = 3;
-  string          error_message = 4;
-  google.protobuf.Timestamp created_at = 5;
+  string          id            = 1; // UUID
+  string          name          = 2; // human-readable name
+  string          docker_id     = 3;
+  ContainerStatus status        = 4;
+  string          error_message = 5;
+  google.protobuf.Timestamp created_at = 6;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,29 +30,30 @@ message Container {
 // ---------------------------------------------------------------------------
 
 message CreateContainerRequest {
-  string id = 1;
+  string name             = 1;
+  bool   remove_existing  = 2; // remove existing Docker container before creating
 }
 
 message GetContainerRequest {
-  string id = 1;
+  string name = 1;
 }
 
 message ListContainersRequest {}
 
 message StartContainerRequest {
-  string id = 1;
+  string name = 1;
 }
 
 message StopContainerRequest {
-  string id = 1;
+  string name = 1;
 }
 
 message DeleteContainerRequest {
-  string id = 1;
+  string name = 1;
 }
 
 message StreamLogsRequest {
-  string container_id = 1;
+  string name = 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,9 +83,9 @@ message StopContainerResponse {
 message DeleteContainerResponse {}
 
 message StreamLogsResponse {
-  string container_id = 1;
-  string line         = 2;
-  bool   is_stderr    = 3;
+  string name       = 1;
+  string line       = 2;
+  bool   is_stderr  = 3;
   google.protobuf.Timestamp timestamp = 4;
 }
 

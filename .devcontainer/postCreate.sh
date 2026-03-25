@@ -27,3 +27,4 @@ npm install -g @bufbuild/protoc-gen-es @connectrpc/protoc-gen-connect-es
 
 # Claude Code CLI
 npm install -g @anthropic-ai/claude-code
+npm install -g @devcontainers/cli

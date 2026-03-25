@@ -79,11 +79,12 @@ func (ContainerStatus) EnumDescriptor() ([]byte, []int) {
 
 type Container struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	DockerId      string                 `protobuf:"bytes,2,opt,name=docker_id,json=dockerId,proto3" json:"docker_id,omitempty"`
-	Status        ContainerStatus        `protobuf:"varint,3,opt,name=status,proto3,enum=norn.containers.v1.ContainerStatus" json:"status,omitempty"`
-	ErrorMessage  string                 `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`     // UUID
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"` // human-readable name
+	DockerId      string                 `protobuf:"bytes,3,opt,name=docker_id,json=dockerId,proto3" json:"docker_id,omitempty"`
+	Status        ContainerStatus        `protobuf:"varint,4,opt,name=status,proto3,enum=norn.containers.v1.ContainerStatus" json:"status,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -125,6 +126,13 @@ func (x *Container) GetId() string {
 	return ""
 }
 
+func (x *Container) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 func (x *Container) GetDockerId() string {
 	if x != nil {
 		return x.DockerId
@@ -154,10 +162,11 @@ func (x *Container) GetCreatedAt() *timestamppb.Timestamp {
 }
 
 type CreateContainerRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	RemoveExisting bool                   `protobuf:"varint,2,opt,name=remove_existing,json=removeExisting,proto3" json:"remove_existing,omitempty"` // remove existing Docker container before creating
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateContainerRequest) Reset() {
@@ -190,16 +199,23 @@ func (*CreateContainerRequest) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CreateContainerRequest) GetId() string {
+func (x *CreateContainerRequest) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
 }
 
+func (x *CreateContainerRequest) GetRemoveExisting() bool {
+	if x != nil {
+		return x.RemoveExisting
+	}
+	return false
+}
+
 type GetContainerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -234,9 +250,9 @@ func (*GetContainerRequest) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *GetContainerRequest) GetId() string {
+func (x *GetContainerRequest) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
 }
@@ -279,7 +295,7 @@ func (*ListContainersRequest) Descriptor() ([]byte, []int) {
 
 type StartContainerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -314,16 +330,16 @@ func (*StartContainerRequest) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *StartContainerRequest) GetId() string {
+func (x *StartContainerRequest) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
 }
 
 type StopContainerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -358,16 +374,16 @@ func (*StopContainerRequest) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *StopContainerRequest) GetId() string {
+func (x *StopContainerRequest) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
 }
 
 type DeleteContainerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -402,16 +418,16 @@ func (*DeleteContainerRequest) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *DeleteContainerRequest) GetId() string {
+func (x *DeleteContainerRequest) GetName() string {
 	if x != nil {
-		return x.Id
+		return x.Name
 	}
 	return ""
 }
 
 type StreamLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -446,9 +462,9 @@ func (*StreamLogsRequest) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *StreamLogsRequest) GetContainerId() string {
+func (x *StreamLogsRequest) GetName() string {
 	if x != nil {
-		return x.ContainerId
+		return x.Name
 	}
 	return ""
 }
@@ -711,7 +727,7 @@ func (*DeleteContainerResponse) Descriptor() ([]byte, []int) {
 
 type StreamLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Line          string                 `protobuf:"bytes,2,opt,name=line,proto3" json:"line,omitempty"`
 	IsStderr      bool                   `protobuf:"varint,3,opt,name=is_stderr,json=isStderr,proto3" json:"is_stderr,omitempty"`
 	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -749,9 +765,9 @@ func (*StreamLogsResponse) Descriptor() ([]byte, []int) {
 	return file_norn_containers_v1_containers_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *StreamLogsResponse) GetContainerId() string {
+func (x *StreamLogsResponse) GetName() string {
 	if x != nil {
-		return x.ContainerId
+		return x.Name
 	}
 	return ""
 }
@@ -781,27 +797,29 @@ var File_norn_containers_v1_containers_proto protoreflect.FileDescriptor
 
 const file_norn_containers_v1_containers_proto_rawDesc = "" +
 	"\n" +
-	"#norn/containers/v1/containers.proto\x12\x12norn.containers.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd5\x01\n" +
+	"#norn/containers/v1/containers.proto\x12\x12norn.containers.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe9\x01\n" +
 	"\tContainer\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\tdocker_id\x18\x02 \x01(\tR\bdockerId\x12;\n" +
-	"\x06status\x18\x03 \x01(\x0e2#.norn.containers.v1.ContainerStatusR\x06status\x12#\n" +
-	"\rerror_message\x18\x04 \x01(\tR\ferrorMessage\x129\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
+	"\tdocker_id\x18\x03 \x01(\tR\bdockerId\x12;\n" +
+	"\x06status\x18\x04 \x01(\x0e2#.norn.containers.v1.ContainerStatusR\x06status\x12#\n" +
+	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\x129\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"(\n" +
-	"\x16CreateContainerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"%\n" +
-	"\x13GetContainerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
-	"\x15ListContainersRequest\"'\n" +
-	"\x15StartContainerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"&\n" +
-	"\x14StopContainerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"(\n" +
-	"\x16DeleteContainerRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"6\n" +
-	"\x11StreamLogsRequest\x12!\n" +
-	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\"V\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"U\n" +
+	"\x16CreateContainerRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12'\n" +
+	"\x0fremove_existing\x18\x02 \x01(\bR\x0eremoveExisting\")\n" +
+	"\x13GetContainerRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x17\n" +
+	"\x15ListContainersRequest\"+\n" +
+	"\x15StartContainerRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"*\n" +
+	"\x14StopContainerRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\",\n" +
+	"\x16DeleteContainerRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"'\n" +
+	"\x11StreamLogsRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"V\n" +
 	"\x17CreateContainerResponse\x12;\n" +
 	"\tcontainer\x18\x01 \x01(\v2\x1d.norn.containers.v1.ContainerR\tcontainer\"S\n" +
 	"\x14GetContainerResponse\x12;\n" +
@@ -814,9 +832,9 @@ const file_norn_containers_v1_containers_proto_rawDesc = "" +
 	"\tcontainer\x18\x01 \x01(\v2\x1d.norn.containers.v1.ContainerR\tcontainer\"T\n" +
 	"\x15StopContainerResponse\x12;\n" +
 	"\tcontainer\x18\x01 \x01(\v2\x1d.norn.containers.v1.ContainerR\tcontainer\"\x19\n" +
-	"\x17DeleteContainerResponse\"\xa2\x01\n" +
-	"\x12StreamLogsResponse\x12!\n" +
-	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x12\x12\n" +
+	"\x17DeleteContainerResponse\"\x93\x01\n" +
+	"\x12StreamLogsResponse\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\tR\x04line\x12\x1b\n" +
 	"\tis_stderr\x18\x03 \x01(\bR\bisStderr\x128\n" +
 	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp*\xaa\x01\n" +
