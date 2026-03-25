@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package norn.containers.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Domain types
+// ---------------------------------------------------------------------------
+
+enum ContainerStatus {
+  CONTAINER_STATUS_UNSPECIFIED = 0;
+  CONTAINER_STATUS_STARTING    = 1;
+  CONTAINER_STATUS_RUNNING     = 2;
+  CONTAINER_STATUS_STOPPED     = 3;
+  CONTAINER_STATUS_ERROR       = 4;
+}
+
+message Container {
+  string          id            = 1;
+  string          docker_id     = 2;
+  ContainerStatus status        = 3;
+  string          error_message = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Requests
+// ---------------------------------------------------------------------------
+
+message CreateContainerRequest {
+  string id = 1;
+}
+
+message GetContainerRequest {
+  string id = 1;
+}
+
+message ListContainersRequest {}
+
+message StartContainerRequest {
+  string id = 1;
+}
+
+message StopContainerRequest {
+  string id = 1;
+}
+
+message DeleteContainerRequest {
+  string id = 1;
+}
+
+message StreamLogsRequest {
+  string container_id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Responses
+// ---------------------------------------------------------------------------
+
+message CreateContainerResponse {
+  Container container = 1;
+}
+
+message GetContainerResponse {
+  Container container = 1;
+}
+
+message ListContainersResponse {
+  repeated Container containers = 1;
+}
+
+message StartContainerResponse {
+  Container container = 1;
+}
+
+message StopContainerResponse {
+  Container container = 1;
+}
+
+message DeleteContainerResponse {}
+
+message StreamLogsResponse {
+  string container_id = 1;
+  string line         = 2;
+  bool   is_stderr    = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service ContainerService {
+  rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse);
+  rpc GetContainer(GetContainerRequest)       returns (GetContainerResponse);
+  rpc ListContainers(ListContainersRequest)   returns (ListContainersResponse);
+  rpc StartContainer(StartContainerRequest)   returns (StartContainerResponse);
+  rpc StopContainer(StopContainerRequest)     returns (StopContainerResponse);
+  rpc DeleteContainer(DeleteContainerRequest) returns (DeleteContainerResponse);
+  rpc StreamLogs(StreamLogsRequest)           returns (stream StreamLogsResponse);
+}
