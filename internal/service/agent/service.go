@@ -11,11 +11,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/docker/docker/client"
 	"github.com/google/uuid"
 
 	"github.com/exa-pub/norn/internal/entity"
 	"github.com/exa-pub/norn/internal/service/storage"
 	"github.com/exa-pub/norn/internal/service/tty"
+	"github.com/exa-pub/norn/pkg/dockerutils"
 )
 
 type Service interface {
@@ -32,16 +34,18 @@ type service struct {
 	store     storage.AgentStore
 	instStore storage.InstanceStore
 	ttyMgr    tty.Manager
+	docker    *client.Client
 
 	mu      sync.Mutex
 	running map[string]string // sessionUUID → tty session ID
 }
 
-func NewService(store storage.AgentStore, instStore storage.InstanceStore, ttyMgr tty.Manager) Service {
+func NewService(store storage.AgentStore, instStore storage.InstanceStore, ttyMgr tty.Manager, dk *client.Client) Service {
 	return &service{
 		store:     store,
 		instStore: instStore,
 		ttyMgr:    ttyMgr,
+		docker:    dk,
 		running:   make(map[string]string),
 	}
 }
@@ -110,6 +114,19 @@ func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt st
 	meta, err := s.store.ReadAgent(instanceName, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("agent session %q: %w", sessionID, entity.ErrNotFound)
+	}
+
+	// Verify container is running before creating TTY.
+	instMeta, err := s.instStore.Read(instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("instance %q: %w", instanceName, entity.ErrNotFound)
+	}
+	dc, err := dockerutils.FindByLabel(ctx, s.docker, "norn.id", instMeta.ID)
+	if err != nil {
+		return nil, fmt.Errorf("docker: %w", err)
+	}
+	if dc == nil || dc.State != "running" {
+		return nil, fmt.Errorf("instance %q has no running container: %w", instanceName, entity.ErrFailedPrecondition)
 	}
 
 	s.mu.Lock()

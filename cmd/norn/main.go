@@ -47,7 +47,7 @@ func main() {
 		ConfigPath:      *configPath,
 	})
 	terminalSvc := terminal.NewService(ttyMgr)
-	agentSvc := agent.NewService(store, store, ttyMgr)
+	agentSvc := agent.NewService(store, store, ttyMgr, dk)
 
 	mux := http.NewServeMux()
 	{
