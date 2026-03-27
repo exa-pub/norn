@@ -42,7 +42,10 @@ func main() {
 		ConfigPath:      *configPath,
 	})
 
-	ttyMgr := tty.NewManager(dk)
+	ttyMgr := tty.NewManager(dc, tty.Config{
+		WorkspaceFolder: *workspaceFolder,
+		ConfigPath:      *configPath,
+	})
 	terminalSvc := terminal.NewService(ttyMgr)
 	agentSvc := agent.NewService(store, store, ttyMgr)
 

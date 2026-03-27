@@ -8,7 +8,11 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/creack/pty"
 )
+
+// --- Up ---
 
 type UpOptions struct {
 	WorkspaceFolder string
@@ -18,8 +22,38 @@ type UpOptions struct {
 	RemoveExisting  bool
 }
 
+// --- Exec ---
+
+type ExecOptions struct {
+	WorkspaceFolder string
+	ConfigPath      string
+	IDLabels        map[string]string // --id-label key=value
+	Cmd             []string
+	Cols            uint16
+	Rows            uint16
+}
+
+// ExecProcess is a running devcontainer exec with a host-side PTY.
+type ExecProcess struct {
+	PTY *os.File  // master side of host PTY (read + write)
+	Cmd *exec.Cmd // underlying process
+}
+
+func (p *ExecProcess) Resize(cols, rows uint16) error {
+	return pty.Setsize(p.PTY, &pty.Winsize{Cols: cols, Rows: rows})
+}
+
+func (p *ExecProcess) Close() error {
+	_ = p.Cmd.Process.Kill()
+	_ = p.Cmd.Wait()
+	return p.PTY.Close()
+}
+
+// --- Client ---
+
 type Client interface {
 	Up(ctx context.Context, opts UpOptions, stdout, stderr io.Writer) (dockerID string, err error)
+	Exec(ctx context.Context, opts ExecOptions) (*ExecProcess, error)
 }
 
 func New() Client {
@@ -61,6 +95,29 @@ func (c *client) Up(ctx context.Context, opts UpOptions, stdout, stderr io.Write
 	}
 	return dockerID, nil
 }
+
+func (c *client) Exec(ctx context.Context, opts ExecOptions) (*ExecProcess, error) {
+	args := []string{"exec",
+		"--workspace-folder", opts.WorkspaceFolder,
+		"--override-config", opts.ConfigPath,
+	}
+	for k, v := range opts.IDLabels {
+		args = append(args, "--id-label", k+"="+v)
+	}
+	args = append(args, opts.Cmd...)
+
+	cmd := exec.CommandContext(ctx, "devcontainer", args...)
+	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{
+		Cols: opts.Cols, Rows: opts.Rows,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("devcontainer exec: %w", err)
+	}
+
+	return &ExecProcess{PTY: ptmx, Cmd: cmd}, nil
+}
+
+// --- parsing ---
 
 type devcontainerResult struct {
 	ContainerID string `json:"containerId"`
