@@ -2,7 +2,6 @@ package connect
 
 import (
 	"context"
-	"fmt"
 
 	chttp "connectrpc.com/connect"
 
@@ -58,11 +57,19 @@ func (h *AgentHandler) DeleteAgentSession(ctx context.Context, req *chttp.Reques
 }
 
 func (h *AgentHandler) LaunchAgent(ctx context.Context, req *chttp.Request[agentsv1.LaunchAgentRequest]) (*chttp.Response[agentsv1.LaunchAgentResponse], error) {
-	return nil, chttp.NewError(chttp.CodeUnimplemented, fmt.Errorf("LaunchAgent not implemented yet"))
+	sess, err := h.svc.Launch(ctx, req.Msg.InstanceName, req.Msg.SessionId, req.Msg.Prompt)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return chttp.NewResponse(&agentsv1.LaunchAgentResponse{Session: agentToProto(sess)}), nil
 }
 
 func (h *AgentHandler) StopAgent(ctx context.Context, req *chttp.Request[agentsv1.StopAgentRequest]) (*chttp.Response[agentsv1.StopAgentResponse], error) {
-	return nil, chttp.NewError(chttp.CodeUnimplemented, fmt.Errorf("StopAgent not implemented yet"))
+	sess, err := h.svc.Stop(ctx, req.Msg.InstanceName, req.Msg.SessionId)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return chttp.NewResponse(&agentsv1.StopAgentResponse{Session: agentToProto(sess)}), nil
 }
 
 func agentToProto(sess *entity.AgentSession) *agentsv1.AgentSession {
@@ -72,3 +79,4 @@ func agentToProto(sess *entity.AgentSession) *agentsv1.AgentSession {
 		Running: sess.Running,
 	}
 }
+

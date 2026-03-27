@@ -10,6 +10,7 @@ import (
 	"time"
 
 	nornconnect "github.com/exa-pub/norn/internal/api/connect"
+	"github.com/exa-pub/norn/internal/api/ws"
 	"github.com/exa-pub/norn/internal/gen/norn/agents/v1/agentsv1connect"
 	"github.com/exa-pub/norn/internal/gen/norn/containers/v1/containersv1connect"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
@@ -17,6 +18,7 @@ import (
 	"github.com/exa-pub/norn/internal/service/agent"
 	"github.com/exa-pub/norn/internal/service/instance"
 	"github.com/exa-pub/norn/internal/service/storage"
+	"github.com/exa-pub/norn/internal/service/tty"
 )
 
 func main() {
@@ -38,7 +40,12 @@ func main() {
 		ConfigPath:      *configPath,
 	})
 
-	agentSvc := agent.NewService(store, store)
+	ttyMgr, err := tty.NewManager(dk)
+	if err != nil {
+		log.Fatalf("tty manager: %v", err)
+	}
+
+	agentSvc := agent.NewService(store, store, ttyMgr, dk)
 
 	mux := http.NewServeMux()
 	{
@@ -53,6 +60,7 @@ func main() {
 		)
 		mux.Handle(path, handler)
 	}
+	mux.Handle("/ws/", ws.Handler(ttyMgr))
 
 	srv := &http.Server{Addr: *addr, Handler: mux}
 
