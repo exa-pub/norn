@@ -10,24 +10,18 @@ import (
 	"strings"
 )
 
-// UpOptions configures a devcontainer up invocation.
 type UpOptions struct {
 	WorkspaceFolder string
 	ConfigPath      string
-	Labels          map[string]string // --id-label key=value (each pair)
-	Env             map[string]string // extra env vars for the process
-	RemoveExisting  bool              // --remove-existing-container
+	Labels          map[string]string
+	Env             map[string]string
+	RemoveExisting  bool
 }
 
-// Client wraps the devcontainer CLI. No norn-specific knowledge.
 type Client interface {
-	// Up runs `devcontainer up` with the given options.
-	// Stdout and stderr of the process are written to the provided writers.
-	// Returns the Docker container ID on success.
 	Up(ctx context.Context, opts UpOptions, stdout, stderr io.Writer) (dockerID string, err error)
 }
 
-// New creates a Client backed by the devcontainer CLI binary.
 func New() Client {
 	return &client{}
 }
@@ -53,7 +47,6 @@ func (c *client) Up(ctx context.Context, opts UpOptions, stdout, stderr io.Write
 	}
 	cmd.Env = env
 
-	// Capture stdout for parsing containerId while also copying to the caller's writer.
 	var stdoutBuf strings.Builder
 	cmd.Stdout = io.MultiWriter(&stdoutBuf, stdout)
 	cmd.Stderr = stderr
@@ -75,7 +68,6 @@ type devcontainerResult struct {
 
 func parseContainerID(output string) (string, error) {
 	lines := strings.Split(output, "\n")
-	// Try from end — devcontainers/cli prints JSON as the last line.
 	for i := len(lines) - 1; i >= 0; i-- {
 		line := strings.TrimSpace(lines[i])
 		if line == "" {

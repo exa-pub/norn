@@ -9,40 +9,53 @@ import (
 	"syscall"
 	"time"
 
-	nornconnect "github.com/exa-pub/norn/internal/connect"
-	"github.com/exa-pub/norn/internal/container"
+	nornconnect "github.com/exa-pub/norn/internal/api/connect"
+	"github.com/exa-pub/norn/internal/gen/norn/agents/v1/agentsv1connect"
 	"github.com/exa-pub/norn/internal/gen/norn/containers/v1/containersv1connect"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
 	"github.com/exa-pub/norn/internal/pkg/docker"
+	"github.com/exa-pub/norn/internal/service/agent"
+	"github.com/exa-pub/norn/internal/service/instance"
+	"github.com/exa-pub/norn/internal/service/storage"
 )
 
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
+	storageDir := flag.String("storage-dir", ".norn", "NornHome directory")
 	workspaceFolder := flag.String("workspace-folder", ".", "devcontainer workspace folder")
 	configPath := flag.String("devcontainer-config", ".devcontainer/devcontainer.json", "devcontainer config path")
-	storageDir := flag.String("storage-dir", "./storage", "directory for instance data")
 	flag.Parse()
 
-	dc := devcontainer.New()
+	store := storage.NewFileStore(*storageDir)
 	dk, err := docker.New()
 	if err != nil {
-		log.Fatalf("docker client: %v", err)
+		log.Fatalf("docker: %v", err)
 	}
-	mgr := container.NewManager(dc, dk, container.Config{
+	dc := devcontainer.New()
+
+	instanceSvc := instance.NewService(store, store, dc, dk, instance.Config{
 		WorkspaceFolder: *workspaceFolder,
 		ConfigPath:      *configPath,
-		StorageDir:      *storageDir,
 	})
 
+	agentSvc := agent.NewService(store, store)
+
 	mux := http.NewServeMux()
-	path, handler := containersv1connect.NewContainerServiceHandler(
-		nornconnect.NewContainerHandler(mgr),
-	)
-	mux.Handle(path, handler)
+	{
+		path, handler := containersv1connect.NewContainerServiceHandler(
+			nornconnect.NewContainerHandler(instanceSvc),
+		)
+		mux.Handle(path, handler)
+	}
+	{
+		path, handler := agentsv1connect.NewAgentServiceHandler(
+			nornconnect.NewAgentHandler(agentSvc),
+		)
+		mux.Handle(path, handler)
+	}
 
 	srv := &http.Server{Addr: *addr, Handler: mux}
 
-	// Listen for shutdown signals.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -58,10 +71,7 @@ func main() {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("http shutdown: %v", err)
-	}
-	mgr.Shutdown()
+	_ = srv.Shutdown(shutdownCtx)
+	instanceSvc.Shutdown()
 	log.Println("stopped")
 }

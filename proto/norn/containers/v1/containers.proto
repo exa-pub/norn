@@ -4,10 +4,6 @@ package norn.containers.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// ---------------------------------------------------------------------------
-// Domain types
-// ---------------------------------------------------------------------------
-
 enum ContainerStatus {
   CONTAINER_STATUS_UNSPECIFIED = 0;
   CONTAINER_STATUS_STARTING    = 1;
@@ -17,88 +13,43 @@ enum ContainerStatus {
 }
 
 message Container {
-  string          id            = 1; // UUID
-  string          name          = 2; // human-readable name
-  string          docker_id     = 3;
-  ContainerStatus status        = 4;
-  string          error_message = 5;
-  google.protobuf.Timestamp created_at = 6;
+  string          id            = 1;
+  string          name          = 2;
+  google.protobuf.Timestamp created_at = 3;
+  string          docker_id     = 4;
+  ContainerStatus status        = 5;
+  string          error_message = 6;
 }
-
-// ---------------------------------------------------------------------------
-// Requests
-// ---------------------------------------------------------------------------
-
-message CreateContainerRequest {
-  string name             = 1;
-  bool   remove_existing  = 2; // remove existing Docker container before creating
-}
-
-message GetContainerRequest {
-  string name = 1;
-}
-
-message ListContainersRequest {}
-
-message StartContainerRequest {
-  string name = 1;
-}
-
-message StopContainerRequest {
-  string name = 1;
-}
-
-message DeleteContainerRequest {
-  string name = 1;
-}
-
-message StreamLogsRequest {
-  string name = 1;
-}
-
-// ---------------------------------------------------------------------------
-// Responses
-// ---------------------------------------------------------------------------
-
-message CreateContainerResponse {
-  Container container = 1;
-}
-
-message GetContainerResponse {
-  Container container = 1;
-}
-
-message ListContainersResponse {
-  repeated Container containers = 1;
-}
-
-message StartContainerResponse {
-  Container container = 1;
-}
-
-message StopContainerResponse {
-  Container container = 1;
-}
-
-message DeleteContainerResponse {}
-
-message StreamLogsResponse {
-  string name       = 1;
-  string line       = 2;
-  bool   is_stderr  = 3;
-  google.protobuf.Timestamp timestamp = 4;
-}
-
-// ---------------------------------------------------------------------------
-// Service
-// ---------------------------------------------------------------------------
 
 service ContainerService {
   rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse);
-  rpc GetContainer(GetContainerRequest)       returns (GetContainerResponse);
-  rpc ListContainers(ListContainersRequest)   returns (ListContainersResponse);
-  rpc StartContainer(StartContainerRequest)   returns (StartContainerResponse);
-  rpc StopContainer(StopContainerRequest)     returns (StopContainerResponse);
+  rpc GetContainer(GetContainerRequest) returns (GetContainerResponse);
+  rpc ListContainers(ListContainersRequest) returns (ListContainersResponse);
+  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse);
+  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse);
   rpc DeleteContainer(DeleteContainerRequest) returns (DeleteContainerResponse);
-  rpc StreamLogs(StreamLogsRequest)           returns (stream StreamLogsResponse);
+  rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
+}
+
+message CreateContainerRequest { string name = 1; }
+message GetContainerRequest { string name = 1; }
+message ListContainersRequest {}
+message StartContainerRequest {
+  string name            = 1;
+  bool   remove_existing = 2;
+}
+message StopContainerRequest { string name = 1; }
+message DeleteContainerRequest { string name = 1; }
+message StreamLogsRequest { string name = 1; }
+
+message CreateContainerResponse { Container container = 1; }
+message GetContainerResponse { Container container = 1; }
+message ListContainersResponse { repeated Container containers = 1; }
+message StartContainerResponse { Container container = 1; }
+message StopContainerResponse { Container container = 1; }
+message DeleteContainerResponse {}
+message StreamLogsResponse {
+  string line      = 1;
+  bool   is_stderr = 2;
+  google.protobuf.Timestamp timestamp = 3;
 }
