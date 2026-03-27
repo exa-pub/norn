@@ -26,6 +26,7 @@ type AgentSession struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Running       bool                   `protobuf:"varint,3,opt,name=running,proto3" json:"running,omitempty"`
+	TtyId         string                 `protobuf:"bytes,4,opt,name=tty_id,json=ttyId,proto3" json:"tty_id,omitempty"` // TTY session ID for WebSocket (empty if not running)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -79,6 +80,13 @@ func (x *AgentSession) GetRunning() bool {
 		return x.Running
 	}
 	return false
+}
+
+func (x *AgentSession) GetTtyId() string {
+	if x != nil {
+		return x.TtyId
+	}
+	return ""
 }
 
 type CreateAgentSessionRequest struct {
@@ -281,6 +289,66 @@ func (x *DeleteAgentSessionRequest) GetSessionId() string {
 	return ""
 }
 
+type UpdateAgentSessionNameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceName  string                 `protobuf:"bytes,1,opt,name=instance_name,json=instanceName,proto3" json:"instance_name,omitempty"`
+	SessionId     string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAgentSessionNameRequest) Reset() {
+	*x = UpdateAgentSessionNameRequest{}
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentSessionNameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentSessionNameRequest) ProtoMessage() {}
+
+func (x *UpdateAgentSessionNameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentSessionNameRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAgentSessionNameRequest) Descriptor() ([]byte, []int) {
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateAgentSessionNameRequest) GetInstanceName() string {
+	if x != nil {
+		return x.InstanceName
+	}
+	return ""
+}
+
+func (x *UpdateAgentSessionNameRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *UpdateAgentSessionNameRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type LaunchAgentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceName  string                 `protobuf:"bytes,1,opt,name=instance_name,json=instanceName,proto3" json:"instance_name,omitempty"`
@@ -292,7 +360,7 @@ type LaunchAgentRequest struct {
 
 func (x *LaunchAgentRequest) Reset() {
 	*x = LaunchAgentRequest{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[5]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -304,7 +372,7 @@ func (x *LaunchAgentRequest) String() string {
 func (*LaunchAgentRequest) ProtoMessage() {}
 
 func (x *LaunchAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[5]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -317,7 +385,7 @@ func (x *LaunchAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaunchAgentRequest.ProtoReflect.Descriptor instead.
 func (*LaunchAgentRequest) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{5}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LaunchAgentRequest) GetInstanceName() string {
@@ -351,7 +419,7 @@ type StopAgentRequest struct {
 
 func (x *StopAgentRequest) Reset() {
 	*x = StopAgentRequest{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[6]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -363,7 +431,7 @@ func (x *StopAgentRequest) String() string {
 func (*StopAgentRequest) ProtoMessage() {}
 
 func (x *StopAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[6]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -376,7 +444,7 @@ func (x *StopAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopAgentRequest.ProtoReflect.Descriptor instead.
 func (*StopAgentRequest) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{6}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *StopAgentRequest) GetInstanceName() string {
@@ -402,7 +470,7 @@ type CreateAgentSessionResponse struct {
 
 func (x *CreateAgentSessionResponse) Reset() {
 	*x = CreateAgentSessionResponse{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[7]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -414,7 +482,7 @@ func (x *CreateAgentSessionResponse) String() string {
 func (*CreateAgentSessionResponse) ProtoMessage() {}
 
 func (x *CreateAgentSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[7]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -427,7 +495,7 @@ func (x *CreateAgentSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAgentSessionResponse.ProtoReflect.Descriptor instead.
 func (*CreateAgentSessionResponse) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{7}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateAgentSessionResponse) GetSession() *AgentSession {
@@ -446,7 +514,7 @@ type GetAgentSessionResponse struct {
 
 func (x *GetAgentSessionResponse) Reset() {
 	*x = GetAgentSessionResponse{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[8]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -458,7 +526,7 @@ func (x *GetAgentSessionResponse) String() string {
 func (*GetAgentSessionResponse) ProtoMessage() {}
 
 func (x *GetAgentSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[8]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +539,7 @@ func (x *GetAgentSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentSessionResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentSessionResponse) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{8}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetAgentSessionResponse) GetSession() *AgentSession {
@@ -490,7 +558,7 @@ type ListAgentSessionsResponse struct {
 
 func (x *ListAgentSessionsResponse) Reset() {
 	*x = ListAgentSessionsResponse{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[9]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +570,7 @@ func (x *ListAgentSessionsResponse) String() string {
 func (*ListAgentSessionsResponse) ProtoMessage() {}
 
 func (x *ListAgentSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[9]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +583,7 @@ func (x *ListAgentSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentSessionsResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{9}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListAgentSessionsResponse) GetSessions() []*AgentSession {
@@ -533,7 +601,7 @@ type DeleteAgentSessionResponse struct {
 
 func (x *DeleteAgentSessionResponse) Reset() {
 	*x = DeleteAgentSessionResponse{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[10]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -545,7 +613,7 @@ func (x *DeleteAgentSessionResponse) String() string {
 func (*DeleteAgentSessionResponse) ProtoMessage() {}
 
 func (x *DeleteAgentSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[10]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -558,7 +626,51 @@ func (x *DeleteAgentSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAgentSessionResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAgentSessionResponse) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{10}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{11}
+}
+
+type UpdateAgentSessionNameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Session       *AgentSession          `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAgentSessionNameResponse) Reset() {
+	*x = UpdateAgentSessionNameResponse{}
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentSessionNameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentSessionNameResponse) ProtoMessage() {}
+
+func (x *UpdateAgentSessionNameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentSessionNameResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAgentSessionNameResponse) Descriptor() ([]byte, []int) {
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *UpdateAgentSessionNameResponse) GetSession() *AgentSession {
+	if x != nil {
+		return x.Session
+	}
+	return nil
 }
 
 type LaunchAgentResponse struct {
@@ -570,7 +682,7 @@ type LaunchAgentResponse struct {
 
 func (x *LaunchAgentResponse) Reset() {
 	*x = LaunchAgentResponse{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[11]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -582,7 +694,7 @@ func (x *LaunchAgentResponse) String() string {
 func (*LaunchAgentResponse) ProtoMessage() {}
 
 func (x *LaunchAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[11]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -595,7 +707,7 @@ func (x *LaunchAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaunchAgentResponse.ProtoReflect.Descriptor instead.
 func (*LaunchAgentResponse) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{11}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *LaunchAgentResponse) GetSession() *AgentSession {
@@ -614,7 +726,7 @@ type StopAgentResponse struct {
 
 func (x *StopAgentResponse) Reset() {
 	*x = StopAgentResponse{}
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[12]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +738,7 @@ func (x *StopAgentResponse) String() string {
 func (*StopAgentResponse) ProtoMessage() {}
 
 func (x *StopAgentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_norn_agents_v1_agents_proto_msgTypes[12]
+	mi := &file_norn_agents_v1_agents_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +751,7 @@ func (x *StopAgentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopAgentResponse.ProtoReflect.Descriptor instead.
 func (*StopAgentResponse) Descriptor() ([]byte, []int) {
-	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{12}
+	return file_norn_agents_v1_agents_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *StopAgentResponse) GetSession() *AgentSession {
@@ -653,11 +765,12 @@ var File_norn_agents_v1_agents_proto protoreflect.FileDescriptor
 
 const file_norn_agents_v1_agents_proto_rawDesc = "" +
 	"\n" +
-	"\x1bnorn/agents/v1/agents.proto\x12\x0enorn.agents.v1\"L\n" +
+	"\x1bnorn/agents/v1/agents.proto\x12\x0enorn.agents.v1\"c\n" +
 	"\fAgentSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
-	"\arunning\x18\x03 \x01(\bR\arunning\"T\n" +
+	"\arunning\x18\x03 \x01(\bR\arunning\x12\x15\n" +
+	"\x06tty_id\x18\x04 \x01(\tR\x05ttyId\"T\n" +
 	"\x19CreateAgentSessionRequest\x12#\n" +
 	"\rinstance_name\x18\x01 \x01(\tR\finstanceName\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"\\\n" +
@@ -670,7 +783,12 @@ const file_norn_agents_v1_agents_proto_rawDesc = "" +
 	"\x19DeleteAgentSessionRequest\x12#\n" +
 	"\rinstance_name\x18\x01 \x01(\tR\finstanceName\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\"p\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\"w\n" +
+	"\x1dUpdateAgentSessionNameRequest\x12#\n" +
+	"\rinstance_name\x18\x01 \x01(\tR\finstanceName\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"p\n" +
 	"\x12LaunchAgentRequest\x12#\n" +
 	"\rinstance_name\x18\x01 \x01(\tR\finstanceName\x12\x1d\n" +
 	"\n" +
@@ -686,16 +804,19 @@ const file_norn_agents_v1_agents_proto_rawDesc = "" +
 	"\asession\x18\x01 \x01(\v2\x1c.norn.agents.v1.AgentSessionR\asession\"U\n" +
 	"\x19ListAgentSessionsResponse\x128\n" +
 	"\bsessions\x18\x01 \x03(\v2\x1c.norn.agents.v1.AgentSessionR\bsessions\"\x1c\n" +
-	"\x1aDeleteAgentSessionResponse\"M\n" +
+	"\x1aDeleteAgentSessionResponse\"X\n" +
+	"\x1eUpdateAgentSessionNameResponse\x126\n" +
+	"\asession\x18\x01 \x01(\v2\x1c.norn.agents.v1.AgentSessionR\asession\"M\n" +
 	"\x13LaunchAgentResponse\x126\n" +
 	"\asession\x18\x01 \x01(\v2\x1c.norn.agents.v1.AgentSessionR\asession\"K\n" +
 	"\x11StopAgentResponse\x126\n" +
-	"\asession\x18\x01 \x01(\v2\x1c.norn.agents.v1.AgentSessionR\asession2\xe0\x04\n" +
+	"\asession\x18\x01 \x01(\v2\x1c.norn.agents.v1.AgentSessionR\asession2\xd9\x05\n" +
 	"\fAgentService\x12k\n" +
 	"\x12CreateAgentSession\x12).norn.agents.v1.CreateAgentSessionRequest\x1a*.norn.agents.v1.CreateAgentSessionResponse\x12b\n" +
 	"\x0fGetAgentSession\x12&.norn.agents.v1.GetAgentSessionRequest\x1a'.norn.agents.v1.GetAgentSessionResponse\x12h\n" +
 	"\x11ListAgentSessions\x12(.norn.agents.v1.ListAgentSessionsRequest\x1a).norn.agents.v1.ListAgentSessionsResponse\x12k\n" +
-	"\x12DeleteAgentSession\x12).norn.agents.v1.DeleteAgentSessionRequest\x1a*.norn.agents.v1.DeleteAgentSessionResponse\x12V\n" +
+	"\x12DeleteAgentSession\x12).norn.agents.v1.DeleteAgentSessionRequest\x1a*.norn.agents.v1.DeleteAgentSessionResponse\x12w\n" +
+	"\x16UpdateAgentSessionName\x12-.norn.agents.v1.UpdateAgentSessionNameRequest\x1a..norn.agents.v1.UpdateAgentSessionNameResponse\x12V\n" +
 	"\vLaunchAgent\x12\".norn.agents.v1.LaunchAgentRequest\x1a#.norn.agents.v1.LaunchAgentResponse\x12P\n" +
 	"\tStopAgent\x12 .norn.agents.v1.StopAgentRequest\x1a!.norn.agents.v1.StopAgentResponseB\xb9\x01\n" +
 	"\x12com.norn.agents.v1B\vAgentsProtoP\x01Z<github.com/exa-pub/norn/internal/gen/norn/agents/v1;agentsv1\xa2\x02\x03NAX\xaa\x02\x0eNorn.Agents.V1\xca\x02\x0eNorn\\Agents\\V1\xe2\x02\x1aNorn\\Agents\\V1\\GPBMetadata\xea\x02\x10Norn::Agents::V1b\x06proto3"
@@ -712,45 +833,50 @@ func file_norn_agents_v1_agents_proto_rawDescGZIP() []byte {
 	return file_norn_agents_v1_agents_proto_rawDescData
 }
 
-var file_norn_agents_v1_agents_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_norn_agents_v1_agents_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_norn_agents_v1_agents_proto_goTypes = []any{
-	(*AgentSession)(nil),               // 0: norn.agents.v1.AgentSession
-	(*CreateAgentSessionRequest)(nil),  // 1: norn.agents.v1.CreateAgentSessionRequest
-	(*GetAgentSessionRequest)(nil),     // 2: norn.agents.v1.GetAgentSessionRequest
-	(*ListAgentSessionsRequest)(nil),   // 3: norn.agents.v1.ListAgentSessionsRequest
-	(*DeleteAgentSessionRequest)(nil),  // 4: norn.agents.v1.DeleteAgentSessionRequest
-	(*LaunchAgentRequest)(nil),         // 5: norn.agents.v1.LaunchAgentRequest
-	(*StopAgentRequest)(nil),           // 6: norn.agents.v1.StopAgentRequest
-	(*CreateAgentSessionResponse)(nil), // 7: norn.agents.v1.CreateAgentSessionResponse
-	(*GetAgentSessionResponse)(nil),    // 8: norn.agents.v1.GetAgentSessionResponse
-	(*ListAgentSessionsResponse)(nil),  // 9: norn.agents.v1.ListAgentSessionsResponse
-	(*DeleteAgentSessionResponse)(nil), // 10: norn.agents.v1.DeleteAgentSessionResponse
-	(*LaunchAgentResponse)(nil),        // 11: norn.agents.v1.LaunchAgentResponse
-	(*StopAgentResponse)(nil),          // 12: norn.agents.v1.StopAgentResponse
+	(*AgentSession)(nil),                   // 0: norn.agents.v1.AgentSession
+	(*CreateAgentSessionRequest)(nil),      // 1: norn.agents.v1.CreateAgentSessionRequest
+	(*GetAgentSessionRequest)(nil),         // 2: norn.agents.v1.GetAgentSessionRequest
+	(*ListAgentSessionsRequest)(nil),       // 3: norn.agents.v1.ListAgentSessionsRequest
+	(*DeleteAgentSessionRequest)(nil),      // 4: norn.agents.v1.DeleteAgentSessionRequest
+	(*UpdateAgentSessionNameRequest)(nil),  // 5: norn.agents.v1.UpdateAgentSessionNameRequest
+	(*LaunchAgentRequest)(nil),             // 6: norn.agents.v1.LaunchAgentRequest
+	(*StopAgentRequest)(nil),               // 7: norn.agents.v1.StopAgentRequest
+	(*CreateAgentSessionResponse)(nil),     // 8: norn.agents.v1.CreateAgentSessionResponse
+	(*GetAgentSessionResponse)(nil),        // 9: norn.agents.v1.GetAgentSessionResponse
+	(*ListAgentSessionsResponse)(nil),      // 10: norn.agents.v1.ListAgentSessionsResponse
+	(*DeleteAgentSessionResponse)(nil),     // 11: norn.agents.v1.DeleteAgentSessionResponse
+	(*UpdateAgentSessionNameResponse)(nil), // 12: norn.agents.v1.UpdateAgentSessionNameResponse
+	(*LaunchAgentResponse)(nil),            // 13: norn.agents.v1.LaunchAgentResponse
+	(*StopAgentResponse)(nil),              // 14: norn.agents.v1.StopAgentResponse
 }
 var file_norn_agents_v1_agents_proto_depIdxs = []int32{
 	0,  // 0: norn.agents.v1.CreateAgentSessionResponse.session:type_name -> norn.agents.v1.AgentSession
 	0,  // 1: norn.agents.v1.GetAgentSessionResponse.session:type_name -> norn.agents.v1.AgentSession
 	0,  // 2: norn.agents.v1.ListAgentSessionsResponse.sessions:type_name -> norn.agents.v1.AgentSession
-	0,  // 3: norn.agents.v1.LaunchAgentResponse.session:type_name -> norn.agents.v1.AgentSession
-	0,  // 4: norn.agents.v1.StopAgentResponse.session:type_name -> norn.agents.v1.AgentSession
-	1,  // 5: norn.agents.v1.AgentService.CreateAgentSession:input_type -> norn.agents.v1.CreateAgentSessionRequest
-	2,  // 6: norn.agents.v1.AgentService.GetAgentSession:input_type -> norn.agents.v1.GetAgentSessionRequest
-	3,  // 7: norn.agents.v1.AgentService.ListAgentSessions:input_type -> norn.agents.v1.ListAgentSessionsRequest
-	4,  // 8: norn.agents.v1.AgentService.DeleteAgentSession:input_type -> norn.agents.v1.DeleteAgentSessionRequest
-	5,  // 9: norn.agents.v1.AgentService.LaunchAgent:input_type -> norn.agents.v1.LaunchAgentRequest
-	6,  // 10: norn.agents.v1.AgentService.StopAgent:input_type -> norn.agents.v1.StopAgentRequest
-	7,  // 11: norn.agents.v1.AgentService.CreateAgentSession:output_type -> norn.agents.v1.CreateAgentSessionResponse
-	8,  // 12: norn.agents.v1.AgentService.GetAgentSession:output_type -> norn.agents.v1.GetAgentSessionResponse
-	9,  // 13: norn.agents.v1.AgentService.ListAgentSessions:output_type -> norn.agents.v1.ListAgentSessionsResponse
-	10, // 14: norn.agents.v1.AgentService.DeleteAgentSession:output_type -> norn.agents.v1.DeleteAgentSessionResponse
-	11, // 15: norn.agents.v1.AgentService.LaunchAgent:output_type -> norn.agents.v1.LaunchAgentResponse
-	12, // 16: norn.agents.v1.AgentService.StopAgent:output_type -> norn.agents.v1.StopAgentResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	0,  // 3: norn.agents.v1.UpdateAgentSessionNameResponse.session:type_name -> norn.agents.v1.AgentSession
+	0,  // 4: norn.agents.v1.LaunchAgentResponse.session:type_name -> norn.agents.v1.AgentSession
+	0,  // 5: norn.agents.v1.StopAgentResponse.session:type_name -> norn.agents.v1.AgentSession
+	1,  // 6: norn.agents.v1.AgentService.CreateAgentSession:input_type -> norn.agents.v1.CreateAgentSessionRequest
+	2,  // 7: norn.agents.v1.AgentService.GetAgentSession:input_type -> norn.agents.v1.GetAgentSessionRequest
+	3,  // 8: norn.agents.v1.AgentService.ListAgentSessions:input_type -> norn.agents.v1.ListAgentSessionsRequest
+	4,  // 9: norn.agents.v1.AgentService.DeleteAgentSession:input_type -> norn.agents.v1.DeleteAgentSessionRequest
+	5,  // 10: norn.agents.v1.AgentService.UpdateAgentSessionName:input_type -> norn.agents.v1.UpdateAgentSessionNameRequest
+	6,  // 11: norn.agents.v1.AgentService.LaunchAgent:input_type -> norn.agents.v1.LaunchAgentRequest
+	7,  // 12: norn.agents.v1.AgentService.StopAgent:input_type -> norn.agents.v1.StopAgentRequest
+	8,  // 13: norn.agents.v1.AgentService.CreateAgentSession:output_type -> norn.agents.v1.CreateAgentSessionResponse
+	9,  // 14: norn.agents.v1.AgentService.GetAgentSession:output_type -> norn.agents.v1.GetAgentSessionResponse
+	10, // 15: norn.agents.v1.AgentService.ListAgentSessions:output_type -> norn.agents.v1.ListAgentSessionsResponse
+	11, // 16: norn.agents.v1.AgentService.DeleteAgentSession:output_type -> norn.agents.v1.DeleteAgentSessionResponse
+	12, // 17: norn.agents.v1.AgentService.UpdateAgentSessionName:output_type -> norn.agents.v1.UpdateAgentSessionNameResponse
+	13, // 18: norn.agents.v1.AgentService.LaunchAgent:output_type -> norn.agents.v1.LaunchAgentResponse
+	14, // 19: norn.agents.v1.AgentService.StopAgent:output_type -> norn.agents.v1.StopAgentResponse
+	13, // [13:20] is the sub-list for method output_type
+	6,  // [6:13] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_norn_agents_v1_agents_proto_init() }
@@ -764,7 +890,7 @@ func file_norn_agents_v1_agents_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_norn_agents_v1_agents_proto_rawDesc), len(file_norn_agents_v1_agents_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

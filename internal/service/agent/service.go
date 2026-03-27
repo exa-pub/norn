@@ -1,10 +1,15 @@
+// Package agent manages persistent Agent Sessions (Claude Code conversations).
+//
+// On server restart, the running map is empty. Previously launched agents
+// may still be running as Docker exec processes, but are considered stopped
+// from Norn's perspective. A new Launch will create a fresh exec;
+// the orphaned exec will terminate when its stdin is closed.
 package agent
 
 import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -18,6 +23,7 @@ type Service interface {
 	GetSession(ctx context.Context, instanceName, sessionID string) (*entity.AgentSession, error)
 	ListSessions(ctx context.Context, instanceName string) ([]*entity.AgentSession, error)
 	DeleteSession(ctx context.Context, instanceName, sessionID string) error
+	UpdateSessionName(ctx context.Context, instanceName, sessionID, name string) (*entity.AgentSession, error)
 	Launch(ctx context.Context, instanceName, sessionID, prompt string) (*entity.AgentSession, error)
 	Stop(ctx context.Context, instanceName, sessionID string) (*entity.AgentSession, error)
 }
@@ -51,7 +57,7 @@ func (s *service) CreateSession(ctx context.Context, instanceName, name string) 
 		return nil, err
 	}
 
-	return &entity.AgentSession{ID: sessionID, Name: name, Running: false}, nil
+	return s.toEntity(sessionID, name), nil
 }
 
 func (s *service) GetSession(ctx context.Context, instanceName, sessionID string) (*entity.AgentSession, error) {
@@ -59,12 +65,7 @@ func (s *service) GetSession(ctx context.Context, instanceName, sessionID string
 	if err != nil {
 		return nil, fmt.Errorf("agent session %q: %w", sessionID, entity.ErrNotFound)
 	}
-
-	s.mu.Lock()
-	_, running := s.running[sessionID]
-	s.mu.Unlock()
-
-	return &entity.AgentSession{ID: meta.ID, Name: meta.Name, Running: running}, nil
+	return s.toEntity(meta.ID, meta.Name), nil
 }
 
 func (s *service) ListSessions(ctx context.Context, instanceName string) ([]*entity.AgentSession, error) {
@@ -77,13 +78,9 @@ func (s *service) ListSessions(ctx context.Context, instanceName string) ([]*ent
 		return nil, err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	result := make([]*entity.AgentSession, 0, len(metas))
 	for _, m := range metas {
-		_, running := s.running[m.ID]
-		result = append(result, &entity.AgentSession{ID: m.ID, Name: m.Name, Running: running})
+		result = append(result, s.toEntity(m.ID, m.Name))
 	}
 	return result, nil
 }
@@ -102,6 +99,13 @@ func (s *service) DeleteSession(ctx context.Context, instanceName, sessionID str
 	return s.store.RemoveAgent(instanceName, sessionID)
 }
 
+func (s *service) UpdateSessionName(ctx context.Context, instanceName, sessionID, name string) (*entity.AgentSession, error) {
+	if err := s.store.UpdateAgentName(instanceName, sessionID, name); err != nil {
+		return nil, fmt.Errorf("agent session %q: %w", sessionID, entity.ErrNotFound)
+	}
+	return s.toEntity(sessionID, name), nil
+}
+
 func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt string) (*entity.AgentSession, error) {
 	meta, err := s.store.ReadAgent(instanceName, sessionID)
 	if err != nil {
@@ -115,7 +119,6 @@ func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt st
 	}
 	s.mu.Unlock()
 
-	// Build claude command.
 	cmd := []string{
 		"claude",
 		"--resume", sessionID,
@@ -125,19 +128,27 @@ func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt st
 		cmd = append(cmd, "-p", prompt)
 	}
 
-	ttySess, err := s.ttyMgr.Create(ctx, instanceName, cmd)
+	var ttyID string
+	ttySess, err := s.ttyMgr.Create(ctx, instanceName, cmd, func() {
+		s.mu.Lock()
+		if s.running[sessionID] == ttyID {
+			delete(s.running, sessionID)
+		}
+		s.mu.Unlock()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create tty for agent: %w", err)
 	}
+	ttyID = ttySess.ID
 
 	s.mu.Lock()
-	s.running[sessionID] = ttySess.ID
+	s.running[sessionID] = ttyID
 	s.mu.Unlock()
 
-	// Monitor TTY exit to update running state.
-	go s.watchExit(sessionID, ttySess.ID)
-
-	return &entity.AgentSession{ID: meta.ID, Name: meta.Name, Running: true}, nil
+	return &entity.AgentSession{
+		ID: meta.ID, Name: meta.Name,
+		Running: true, TTYID: ttyID,
+	}, nil
 }
 
 func (s *service) Stop(ctx context.Context, instanceName, sessionID string) (*entity.AgentSession, error) {
@@ -160,17 +171,17 @@ func (s *service) Stop(ctx context.Context, instanceName, sessionID string) (*en
 	return &entity.AgentSession{ID: meta.ID, Name: meta.Name, Running: false}, nil
 }
 
-func (s *service) watchExit(sessionID, ttyID string) {
-	for {
-		if _, ok := s.ttyMgr.Get(ttyID); !ok {
-			break
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
+// --- private ---
 
+// toEntity builds an AgentSession with current running/ttyID state from the in-memory map.
+func (s *service) toEntity(id, name string) *entity.AgentSession {
 	s.mu.Lock()
-	if s.running[sessionID] == ttyID {
-		delete(s.running, sessionID)
-	}
+	ttyID, running := s.running[id]
 	s.mu.Unlock()
+
+	return &entity.AgentSession{
+		ID: id, Name: name,
+		Running: running, TTYID: ttyID,
+	}
 }
+

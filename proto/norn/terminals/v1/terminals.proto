@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package norn.terminals.v1;
+
+message Terminal {
+  string id            = 1; // terminal session ID
+  string instance_name = 2;
+  string name          = 3;
+  string tty_id        = 4; // TTY session ID for WebSocket
+}
+
+service TerminalService {
+  rpc CreateTerminal(CreateTerminalRequest) returns (CreateTerminalResponse);
+  rpc GetTerminal(GetTerminalRequest) returns (GetTerminalResponse);
+  rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
+  rpc CloseTerminal(CloseTerminalRequest) returns (CloseTerminalResponse);
+}
+
+message CreateTerminalRequest {
+  string instance_name = 1;
+  string name          = 2;
+}
+message GetTerminalRequest { string id = 1; }
+message ListTerminalsRequest { string instance_name = 1; }
+message CloseTerminalRequest { string id = 1; }
+
+message CreateTerminalResponse { Terminal terminal = 1; }
+message GetTerminalResponse { Terminal terminal = 1; }
+message ListTerminalsResponse { repeated Terminal terminals = 1; }
+message CloseTerminalResponse {}

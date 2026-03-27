@@ -86,7 +86,7 @@ func (s *FileStore) NewLogPath(name string, ts time.Time) (string, error) {
 	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		return "", fmt.Errorf("mkdir logs: %w", err)
 	}
-	return filepath.Join(logDir, ts.Format("15-04-05")+".log.jsonl"), nil
+	return filepath.Join(logDir, ts.Format("15-04-05")+".jsonl"), nil
 }
 
 func (s *FileStore) LastLogPath(name string) string {
@@ -111,7 +111,7 @@ func (s *FileStore) LastLogPath(name string) string {
 			return files[i].Name() > files[j].Name()
 		})
 		for _, f := range files {
-			if strings.HasSuffix(f.Name(), ".log.jsonl") {
+			if strings.HasSuffix(f.Name(), ".jsonl") {
 				return filepath.Join(dayPath, f.Name())
 			}
 		}

@@ -45,6 +45,9 @@ const (
 	// AgentServiceDeleteAgentSessionProcedure is the fully-qualified name of the AgentService's
 	// DeleteAgentSession RPC.
 	AgentServiceDeleteAgentSessionProcedure = "/norn.agents.v1.AgentService/DeleteAgentSession"
+	// AgentServiceUpdateAgentSessionNameProcedure is the fully-qualified name of the AgentService's
+	// UpdateAgentSessionName RPC.
+	AgentServiceUpdateAgentSessionNameProcedure = "/norn.agents.v1.AgentService/UpdateAgentSessionName"
 	// AgentServiceLaunchAgentProcedure is the fully-qualified name of the AgentService's LaunchAgent
 	// RPC.
 	AgentServiceLaunchAgentProcedure = "/norn.agents.v1.AgentService/LaunchAgent"
@@ -58,6 +61,7 @@ type AgentServiceClient interface {
 	GetAgentSession(context.Context, *connect.Request[v1.GetAgentSessionRequest]) (*connect.Response[v1.GetAgentSessionResponse], error)
 	ListAgentSessions(context.Context, *connect.Request[v1.ListAgentSessionsRequest]) (*connect.Response[v1.ListAgentSessionsResponse], error)
 	DeleteAgentSession(context.Context, *connect.Request[v1.DeleteAgentSessionRequest]) (*connect.Response[v1.DeleteAgentSessionResponse], error)
+	UpdateAgentSessionName(context.Context, *connect.Request[v1.UpdateAgentSessionNameRequest]) (*connect.Response[v1.UpdateAgentSessionNameResponse], error)
 	LaunchAgent(context.Context, *connect.Request[v1.LaunchAgentRequest]) (*connect.Response[v1.LaunchAgentResponse], error)
 	StopAgent(context.Context, *connect.Request[v1.StopAgentRequest]) (*connect.Response[v1.StopAgentResponse], error)
 }
@@ -97,6 +101,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("DeleteAgentSession")),
 			connect.WithClientOptions(opts...),
 		),
+		updateAgentSessionName: connect.NewClient[v1.UpdateAgentSessionNameRequest, v1.UpdateAgentSessionNameResponse](
+			httpClient,
+			baseURL+AgentServiceUpdateAgentSessionNameProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("UpdateAgentSessionName")),
+			connect.WithClientOptions(opts...),
+		),
 		launchAgent: connect.NewClient[v1.LaunchAgentRequest, v1.LaunchAgentResponse](
 			httpClient,
 			baseURL+AgentServiceLaunchAgentProcedure,
@@ -114,12 +124,13 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // agentServiceClient implements AgentServiceClient.
 type agentServiceClient struct {
-	createAgentSession *connect.Client[v1.CreateAgentSessionRequest, v1.CreateAgentSessionResponse]
-	getAgentSession    *connect.Client[v1.GetAgentSessionRequest, v1.GetAgentSessionResponse]
-	listAgentSessions  *connect.Client[v1.ListAgentSessionsRequest, v1.ListAgentSessionsResponse]
-	deleteAgentSession *connect.Client[v1.DeleteAgentSessionRequest, v1.DeleteAgentSessionResponse]
-	launchAgent        *connect.Client[v1.LaunchAgentRequest, v1.LaunchAgentResponse]
-	stopAgent          *connect.Client[v1.StopAgentRequest, v1.StopAgentResponse]
+	createAgentSession     *connect.Client[v1.CreateAgentSessionRequest, v1.CreateAgentSessionResponse]
+	getAgentSession        *connect.Client[v1.GetAgentSessionRequest, v1.GetAgentSessionResponse]
+	listAgentSessions      *connect.Client[v1.ListAgentSessionsRequest, v1.ListAgentSessionsResponse]
+	deleteAgentSession     *connect.Client[v1.DeleteAgentSessionRequest, v1.DeleteAgentSessionResponse]
+	updateAgentSessionName *connect.Client[v1.UpdateAgentSessionNameRequest, v1.UpdateAgentSessionNameResponse]
+	launchAgent            *connect.Client[v1.LaunchAgentRequest, v1.LaunchAgentResponse]
+	stopAgent              *connect.Client[v1.StopAgentRequest, v1.StopAgentResponse]
 }
 
 // CreateAgentSession calls norn.agents.v1.AgentService.CreateAgentSession.
@@ -142,6 +153,11 @@ func (c *agentServiceClient) DeleteAgentSession(ctx context.Context, req *connec
 	return c.deleteAgentSession.CallUnary(ctx, req)
 }
 
+// UpdateAgentSessionName calls norn.agents.v1.AgentService.UpdateAgentSessionName.
+func (c *agentServiceClient) UpdateAgentSessionName(ctx context.Context, req *connect.Request[v1.UpdateAgentSessionNameRequest]) (*connect.Response[v1.UpdateAgentSessionNameResponse], error) {
+	return c.updateAgentSessionName.CallUnary(ctx, req)
+}
+
 // LaunchAgent calls norn.agents.v1.AgentService.LaunchAgent.
 func (c *agentServiceClient) LaunchAgent(ctx context.Context, req *connect.Request[v1.LaunchAgentRequest]) (*connect.Response[v1.LaunchAgentResponse], error) {
 	return c.launchAgent.CallUnary(ctx, req)
@@ -158,6 +174,7 @@ type AgentServiceHandler interface {
 	GetAgentSession(context.Context, *connect.Request[v1.GetAgentSessionRequest]) (*connect.Response[v1.GetAgentSessionResponse], error)
 	ListAgentSessions(context.Context, *connect.Request[v1.ListAgentSessionsRequest]) (*connect.Response[v1.ListAgentSessionsResponse], error)
 	DeleteAgentSession(context.Context, *connect.Request[v1.DeleteAgentSessionRequest]) (*connect.Response[v1.DeleteAgentSessionResponse], error)
+	UpdateAgentSessionName(context.Context, *connect.Request[v1.UpdateAgentSessionNameRequest]) (*connect.Response[v1.UpdateAgentSessionNameResponse], error)
 	LaunchAgent(context.Context, *connect.Request[v1.LaunchAgentRequest]) (*connect.Response[v1.LaunchAgentResponse], error)
 	StopAgent(context.Context, *connect.Request[v1.StopAgentRequest]) (*connect.Response[v1.StopAgentResponse], error)
 }
@@ -193,6 +210,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("DeleteAgentSession")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceUpdateAgentSessionNameHandler := connect.NewUnaryHandler(
+		AgentServiceUpdateAgentSessionNameProcedure,
+		svc.UpdateAgentSessionName,
+		connect.WithSchema(agentServiceMethods.ByName("UpdateAgentSessionName")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceLaunchAgentHandler := connect.NewUnaryHandler(
 		AgentServiceLaunchAgentProcedure,
 		svc.LaunchAgent,
@@ -215,6 +238,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceListAgentSessionsHandler.ServeHTTP(w, r)
 		case AgentServiceDeleteAgentSessionProcedure:
 			agentServiceDeleteAgentSessionHandler.ServeHTTP(w, r)
+		case AgentServiceUpdateAgentSessionNameProcedure:
+			agentServiceUpdateAgentSessionNameHandler.ServeHTTP(w, r)
 		case AgentServiceLaunchAgentProcedure:
 			agentServiceLaunchAgentHandler.ServeHTTP(w, r)
 		case AgentServiceStopAgentProcedure:
@@ -242,6 +267,10 @@ func (UnimplementedAgentServiceHandler) ListAgentSessions(context.Context, *conn
 
 func (UnimplementedAgentServiceHandler) DeleteAgentSession(context.Context, *connect.Request[v1.DeleteAgentSessionRequest]) (*connect.Response[v1.DeleteAgentSessionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("norn.agents.v1.AgentService.DeleteAgentSession is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) UpdateAgentSessionName(context.Context, *connect.Request[v1.UpdateAgentSessionNameRequest]) (*connect.Response[v1.UpdateAgentSessionNameResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("norn.agents.v1.AgentService.UpdateAgentSessionName is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) LaunchAgent(context.Context, *connect.Request[v1.LaunchAgentRequest]) (*connect.Response[v1.LaunchAgentResponse], error) {

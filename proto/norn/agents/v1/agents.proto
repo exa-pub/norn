@@ -6,6 +6,7 @@ message AgentSession {
   string id      = 1;
   string name    = 2;
   bool   running = 3;
+  string tty_id  = 4; // TTY session ID for WebSocket (empty if not running)
 }
 
 service AgentService {
@@ -13,6 +14,7 @@ service AgentService {
   rpc GetAgentSession(GetAgentSessionRequest) returns (GetAgentSessionResponse);
   rpc ListAgentSessions(ListAgentSessionsRequest) returns (ListAgentSessionsResponse);
   rpc DeleteAgentSession(DeleteAgentSessionRequest) returns (DeleteAgentSessionResponse);
+  rpc UpdateAgentSessionName(UpdateAgentSessionNameRequest) returns (UpdateAgentSessionNameResponse);
   rpc LaunchAgent(LaunchAgentRequest) returns (LaunchAgentResponse);
   rpc StopAgent(StopAgentRequest) returns (StopAgentResponse);
 }
@@ -32,6 +34,11 @@ message DeleteAgentSessionRequest {
   string instance_name = 1;
   string session_id    = 2;
 }
+message UpdateAgentSessionNameRequest {
+  string instance_name = 1;
+  string session_id    = 2;
+  string name          = 3;
+}
 message LaunchAgentRequest {
   string instance_name = 1;
   string session_id    = 2;
@@ -46,5 +53,6 @@ message CreateAgentSessionResponse { AgentSession session = 1; }
 message GetAgentSessionResponse { AgentSession session = 1; }
 message ListAgentSessionsResponse { repeated AgentSession sessions = 1; }
 message DeleteAgentSessionResponse {}
+message UpdateAgentSessionNameResponse { AgentSession session = 1; }
 message LaunchAgentResponse { AgentSession session = 1; }
 message StopAgentResponse { AgentSession session = 1; }

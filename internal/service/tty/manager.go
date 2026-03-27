@@ -1,3 +1,8 @@
+// Package tty manages ephemeral TTY sessions (PTY processes inside containers).
+//
+// Sessions are ephemeral. On server restart, all sessions are lost.
+// Docker exec processes may continue running but are not tracked.
+// They will terminate when their stdin is closed (container restart or SIGHUP).
 package tty
 
 import (
@@ -15,10 +20,12 @@ import (
 	"github.com/exa-pub/norn/pkg/dockerutils"
 )
 
-// Manager manages ephemeral TTY sessions (PTY processes inside containers).
-// PTY lives independently of WebSocket.
+// Manager manages ephemeral TTY sessions.
+// PTY lives independently of WebSocket — closing the browser doesn't kill the process.
 type Manager interface {
-	Create(ctx context.Context, instanceName string, cmd []string) (*entity.TTYSession, error)
+	// Create opens a new PTY inside the container for the given instance.
+	// onClose is called (in a separate goroutine) when the process inside PTY exits.
+	Create(ctx context.Context, instanceName string, cmd []string, onClose func()) (*entity.TTYSession, error)
 	Get(id string) (*entity.TTYSession, bool)
 	List(instanceName string) []*entity.TTYSession
 	Close(id string) error
@@ -42,6 +49,7 @@ type session struct {
 	instanceName string
 	hijack       dockertypes.HijackedResponse
 	execID       string
+	onClose      func()
 }
 
 type manager struct {
@@ -58,7 +66,7 @@ func NewManager(dk *client.Client) Manager {
 	}
 }
 
-func (m *manager) Create(ctx context.Context, instanceName string, cmd []string) (*entity.TTYSession, error) {
+func (m *manager) Create(ctx context.Context, instanceName string, cmd []string, onClose func()) (*entity.TTYSession, error) {
 	dc, err := dockerutils.FindByLabel(ctx, m.docker, "norn.name", instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("docker: %w", err)
@@ -93,6 +101,7 @@ func (m *manager) Create(ctx context.Context, instanceName string, cmd []string)
 		instanceName: instanceName,
 		hijack:       hijack,
 		execID:       execResp.ID,
+		onClose:      onClose,
 	}
 
 	m.mu.Lock()
@@ -137,6 +146,7 @@ func (m *manager) Close(id string) error {
 	m.mu.Unlock()
 
 	sess.hijack.Close()
+	// onClose will be called by waitForExit when the read loop detects EOF.
 	return nil
 }
 
@@ -163,7 +173,6 @@ func (m *manager) Attach(id string) (*PTYStream, error) {
 }
 
 func (m *manager) waitForExit(sessionID string, sess *session) {
-	// Read until EOF — process exited and hijacked connection closed.
 	buf := make([]byte, 256)
 	for {
 		if _, err := sess.hijack.Reader.Read(buf); err != nil {
@@ -172,6 +181,13 @@ func (m *manager) waitForExit(sessionID string, sess *session) {
 	}
 
 	m.mu.Lock()
+	_, stillTracked := m.sessions[sessionID]
 	delete(m.sessions, sessionID)
 	m.mu.Unlock()
+
+	// Call onClose only if the session wasn't already removed by Close().
+	// This avoids double-cleanup.
+	if stillTracked && sess.onClose != nil {
+		sess.onClose()
+	}
 }

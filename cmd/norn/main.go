@@ -13,10 +13,12 @@ import (
 	"github.com/exa-pub/norn/internal/api/ws"
 	"github.com/exa-pub/norn/internal/gen/norn/agents/v1/agentsv1connect"
 	"github.com/exa-pub/norn/internal/gen/norn/containers/v1/containersv1connect"
+	"github.com/exa-pub/norn/internal/gen/norn/terminals/v1/terminalsv1connect"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
 	"github.com/exa-pub/norn/internal/service/agent"
 	"github.com/exa-pub/norn/internal/service/instance"
 	"github.com/exa-pub/norn/internal/service/storage"
+	"github.com/exa-pub/norn/internal/service/terminal"
 	"github.com/exa-pub/norn/internal/service/tty"
 	"github.com/exa-pub/norn/pkg/dockerutils"
 )
@@ -41,6 +43,7 @@ func main() {
 	})
 
 	ttyMgr := tty.NewManager(dk)
+	terminalSvc := terminal.NewService(ttyMgr)
 	agentSvc := agent.NewService(store, store, ttyMgr)
 
 	mux := http.NewServeMux()
@@ -53,6 +56,12 @@ func main() {
 	{
 		path, handler := agentsv1connect.NewAgentServiceHandler(
 			nornconnect.NewAgentHandler(agentSvc),
+		)
+		mux.Handle(path, handler)
+	}
+	{
+		path, handler := terminalsv1connect.NewTerminalServiceHandler(
+			nornconnect.NewTerminalHandler(terminalSvc),
 		)
 		mux.Handle(path, handler)
 	}

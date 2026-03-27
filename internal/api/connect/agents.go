@@ -56,6 +56,14 @@ func (h *AgentHandler) DeleteAgentSession(ctx context.Context, req *chttp.Reques
 	return chttp.NewResponse(&agentsv1.DeleteAgentSessionResponse{}), nil
 }
 
+func (h *AgentHandler) UpdateAgentSessionName(ctx context.Context, req *chttp.Request[agentsv1.UpdateAgentSessionNameRequest]) (*chttp.Response[agentsv1.UpdateAgentSessionNameResponse], error) {
+	sess, err := h.svc.UpdateSessionName(ctx, req.Msg.InstanceName, req.Msg.SessionId, req.Msg.Name)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return chttp.NewResponse(&agentsv1.UpdateAgentSessionNameResponse{Session: agentToProto(sess)}), nil
+}
+
 func (h *AgentHandler) LaunchAgent(ctx context.Context, req *chttp.Request[agentsv1.LaunchAgentRequest]) (*chttp.Response[agentsv1.LaunchAgentResponse], error) {
 	sess, err := h.svc.Launch(ctx, req.Msg.InstanceName, req.Msg.SessionId, req.Msg.Prompt)
 	if err != nil {
@@ -77,6 +85,7 @@ func agentToProto(sess *entity.AgentSession) *agentsv1.AgentSession {
 		Id:      sess.ID,
 		Name:    sess.Name,
 		Running: sess.Running,
+		TtyId:   sess.TTYID,
 	}
 }
 
