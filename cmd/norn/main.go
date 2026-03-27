@@ -14,11 +14,11 @@ import (
 	"github.com/exa-pub/norn/internal/gen/norn/agents/v1/agentsv1connect"
 	"github.com/exa-pub/norn/internal/gen/norn/containers/v1/containersv1connect"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
-	"github.com/exa-pub/norn/internal/pkg/docker"
 	"github.com/exa-pub/norn/internal/service/agent"
 	"github.com/exa-pub/norn/internal/service/instance"
 	"github.com/exa-pub/norn/internal/service/storage"
 	"github.com/exa-pub/norn/internal/service/tty"
+	"github.com/exa-pub/norn/pkg/dockerutils"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	store := storage.NewFileStore(*storageDir)
-	dk, err := docker.New()
+	dk, err := dockerutils.New()
 	if err != nil {
 		log.Fatalf("docker: %v", err)
 	}
@@ -40,12 +40,8 @@ func main() {
 		ConfigPath:      *configPath,
 	})
 
-	ttyMgr, err := tty.NewManager(dk)
-	if err != nil {
-		log.Fatalf("tty manager: %v", err)
-	}
-
-	agentSvc := agent.NewService(store, store, ttyMgr, dk)
+	ttyMgr := tty.NewManager(dk)
+	agentSvc := agent.NewService(store, store, ttyMgr)
 
 	mux := http.NewServeMux()
 	{

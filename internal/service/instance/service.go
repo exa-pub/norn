@@ -8,12 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/google/uuid"
 
 	"github.com/exa-pub/norn/internal/entity"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
-	"github.com/exa-pub/norn/internal/pkg/docker"
 	"github.com/exa-pub/norn/internal/service/storage"
+	"github.com/exa-pub/norn/pkg/dockerutils"
 )
 
 var validName = regexp.MustCompile(`^[a-z0-9][a-z0-9\-]{0,62}$`)
@@ -46,7 +48,7 @@ type service struct {
 	store  storage.InstanceStore
 	home   storage.Home
 	dc     devcontainer.Client
-	docker docker.Client
+	docker *client.Client
 	cfg    Config
 
 	mu     sync.Mutex
@@ -57,7 +59,7 @@ type service struct {
 	wg     sync.WaitGroup
 }
 
-func NewService(store storage.InstanceStore, home storage.Home, dc devcontainer.Client, dk docker.Client, cfg Config) Service {
+func NewService(store storage.InstanceStore, home storage.Home, dc devcontainer.Client, dk *client.Client, cfg Config) Service {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &service{
 		store:  store,
@@ -109,13 +111,13 @@ func (s *service) Get(ctx context.Context, name string) (*entity.Instance, error
 	_, starting := s.active[name]
 	s.mu.Unlock()
 
-	dc, err := s.docker.FindByLabel(ctx, "norn.id", meta.ID)
+	dc, err := dockerutils.FindByLabel(ctx, s.docker, "norn.id", meta.ID)
 	if err != nil {
 		return nil, fmt.Errorf("docker: %w", err)
 	}
 
 	lastError := s.store.ReadError(name)
-	return s.buildInstance(meta, dc, starting, lastError), nil
+	return buildInstance(meta, dc, starting, lastError), nil
 }
 
 func (s *service) List(ctx context.Context) ([]*entity.Instance, error) {
@@ -131,14 +133,14 @@ func (s *service) List(ctx context.Context) ([]*entity.Instance, error) {
 	}
 	s.mu.Unlock()
 
-	dcs, err := s.docker.ListByLabel(ctx, "norn.id")
+	dcs, err := dockerutils.ListByLabel(ctx, s.docker, "norn.id")
 	if err != nil {
 		return nil, err
 	}
-	dockerByID := make(map[string]*docker.Container, len(dcs))
-	for _, dc := range dcs {
-		if id := dc.Labels["norn.id"]; id != "" {
-			dockerByID[id] = dc
+	dockerByID := make(map[string]*types.Container, len(dcs))
+	for i := range dcs {
+		if id := dcs[i].Labels["norn.id"]; id != "" {
+			dockerByID[id] = &dcs[i]
 		}
 	}
 
@@ -150,7 +152,7 @@ func (s *service) List(ctx context.Context) ([]*entity.Instance, error) {
 		}
 		dc := dockerByID[meta.ID]
 		lastError := s.store.ReadError(name)
-		result = append(result, s.buildInstance(meta, dc, activeNames[name], lastError))
+		result = append(result, buildInstance(meta, dc, activeNames[name], lastError))
 	}
 	return result, nil
 }
@@ -199,7 +201,7 @@ func (s *service) Stop(ctx context.Context, name string) (*entity.Instance, erro
 		return nil, fmt.Errorf("instance %q: %w", name, entity.ErrNotFound)
 	}
 
-	dc, err := s.docker.FindByLabel(ctx, "norn.id", meta.ID)
+	dc, err := dockerutils.FindByLabel(ctx, s.docker, "norn.id", meta.ID)
 	if err != nil {
 		return nil, fmt.Errorf("docker: %w", err)
 	}
@@ -207,7 +209,7 @@ func (s *service) Stop(ctx context.Context, name string) (*entity.Instance, erro
 		return nil, fmt.Errorf("instance %q is not running: %w", name, entity.ErrFailedPrecondition)
 	}
 
-	if err := s.docker.Stop(ctx, dc.ID); err != nil {
+	if err := dockerutils.Stop(ctx, s.docker, dc.ID); err != nil {
 		return nil, err
 	}
 
@@ -230,12 +232,12 @@ func (s *service) Delete(ctx context.Context, name string) error {
 		return fmt.Errorf("instance %q: %w", name, entity.ErrNotFound)
 	}
 
-	dc, err := s.docker.FindByLabel(ctx, "norn.id", meta.ID)
+	dc, err := dockerutils.FindByLabel(ctx, s.docker, "norn.id", meta.ID)
 	if err != nil {
 		return fmt.Errorf("docker: %w", err)
 	}
 	if dc != nil {
-		if err := s.docker.Remove(ctx, dc.ID); err != nil {
+		if err := dockerutils.Remove(ctx, s.docker, dc.ID); err != nil {
 			return err
 		}
 	}
@@ -303,7 +305,7 @@ func (s *service) runUp(name string, meta *storage.InstanceMeta, lw *LogWriter, 
 	s.mu.Unlock()
 }
 
-func (s *service) buildInstance(meta *storage.InstanceMeta, dc *docker.Container, isStarting bool, lastError string) *entity.Instance {
+func buildInstance(meta *storage.InstanceMeta, dc *types.Container, isStarting bool, lastError string) *entity.Instance {
 	var dockerID, dockerState string
 	if dc != nil {
 		dockerID = dc.ID

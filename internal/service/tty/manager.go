@@ -8,22 +8,20 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	dockerclient "github.com/docker/docker/client"
+	"github.com/docker/docker/client"
 	"github.com/google/uuid"
 
 	"github.com/exa-pub/norn/internal/entity"
-	"github.com/exa-pub/norn/internal/pkg/docker"
+	"github.com/exa-pub/norn/pkg/dockerutils"
 )
 
 // Manager manages ephemeral TTY sessions (PTY processes inside containers).
-// PTY lives independently of WebSocket — closing the browser doesn't kill the process.
+// PTY lives independently of WebSocket.
 type Manager interface {
-	// Create opens a new PTY inside the container for the given instance.
 	Create(ctx context.Context, instanceName string, cmd []string) (*entity.TTYSession, error)
 	Get(id string) (*entity.TTYSession, bool)
 	List(instanceName string) []*entity.TTYSession
 	Close(id string) error
-	// Attach returns the PTY stream for WebSocket bridging.
 	Attach(id string) (*PTYStream, error)
 }
 
@@ -47,29 +45,21 @@ type session struct {
 }
 
 type manager struct {
-	dockerCli docker.Client
-	rawCli    *dockerclient.Client // for exec/attach (not in our Client interface)
+	docker *client.Client
 
 	mu       sync.Mutex
 	sessions map[string]*session
 }
 
-func NewManager(dk docker.Client) (Manager, error) {
-	// We need the raw Docker client for exec operations.
-	rawCli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv, dockerclient.WithAPIVersionNegotiation())
-	if err != nil {
-		return nil, fmt.Errorf("docker client for tty: %w", err)
-	}
+func NewManager(dk *client.Client) Manager {
 	return &manager{
-		dockerCli: dk,
-		rawCli:    rawCli,
-		sessions:  make(map[string]*session),
-	}, nil
+		docker:   dk,
+		sessions: make(map[string]*session),
+	}
 }
 
 func (m *manager) Create(ctx context.Context, instanceName string, cmd []string) (*entity.TTYSession, error) {
-	// Find the container for this instance.
-	dc, err := m.dockerCli.FindByLabel(ctx, "norn.name", instanceName)
+	dc, err := dockerutils.FindByLabel(ctx, m.docker, "norn.name", instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("docker: %w", err)
 	}
@@ -81,21 +71,18 @@ func (m *manager) Create(ctx context.Context, instanceName string, cmd []string)
 		cmd = []string{"/bin/bash"}
 	}
 
-	// Create exec instance with TTY.
-	execCfg := container.ExecOptions{
+	execResp, err := m.docker.ContainerExecCreate(ctx, dc.ID, container.ExecOptions{
 		Cmd:          cmd,
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
 		Tty:          true,
-	}
-	execResp, err := m.rawCli.ContainerExecCreate(ctx, dc.ID, execCfg)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("exec create: %w", err)
 	}
 
-	// Attach to exec instance.
-	hijack, err := m.rawCli.ContainerExecAttach(ctx, execResp.ID, container.ExecAttachOptions{Tty: true})
+	hijack, err := m.docker.ContainerExecAttach(ctx, execResp.ID, container.ExecAttachOptions{Tty: true})
 	if err != nil {
 		return nil, fmt.Errorf("exec attach: %w", err)
 	}
@@ -112,8 +99,7 @@ func (m *manager) Create(ctx context.Context, instanceName string, cmd []string)
 	m.sessions[sessionID] = sess
 	m.mu.Unlock()
 
-	// Monitor exec completion to auto-cleanup.
-	go m.waitForExit(sessionID, execResp.ID)
+	go m.waitForExit(sessionID, sess)
 
 	return &entity.TTYSession{ID: sessionID}, nil
 }
@@ -163,11 +149,12 @@ func (m *manager) Attach(id string) (*PTYStream, error) {
 	}
 
 	execID := sess.execID
+	docker := m.docker
 	return &PTYStream{
 		Reader: sess.hijack.Reader,
 		Writer: sess.hijack.Conn,
 		resize: func(cols, rows uint) error {
-			return m.rawCli.ContainerExecResize(context.Background(), execID, container.ResizeOptions{
+			return docker.ContainerExecResize(context.Background(), execID, container.ResizeOptions{
 				Width:  cols,
 				Height: rows,
 			})
@@ -175,20 +162,11 @@ func (m *manager) Attach(id string) (*PTYStream, error) {
 	}, nil
 }
 
-func (m *manager) waitForExit(sessionID, execID string) {
-	// Wait for the hijacked connection to close (process exited).
-	m.mu.Lock()
-	sess, ok := m.sessions[sessionID]
-	m.mu.Unlock()
-	if !ok {
-		return
-	}
-
-	// Reading from a closed hijacked connection will return EOF when the process exits.
-	buf := make([]byte, 1)
+func (m *manager) waitForExit(sessionID string, sess *session) {
+	// Read until EOF — process exited and hijacked connection closed.
+	buf := make([]byte, 256)
 	for {
-		_, err := sess.hijack.Reader.Read(buf)
-		if err != nil {
+		if _, err := sess.hijack.Reader.Read(buf); err != nil {
 			break
 		}
 	}

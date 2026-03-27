@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/exa-pub/norn/internal/entity"
-	"github.com/exa-pub/norn/internal/pkg/docker"
 	"github.com/exa-pub/norn/internal/service/storage"
 	"github.com/exa-pub/norn/internal/service/tty"
 )
@@ -27,18 +26,16 @@ type service struct {
 	store     storage.AgentStore
 	instStore storage.InstanceStore
 	ttyMgr    tty.Manager
-	docker    docker.Client
 
 	mu      sync.Mutex
 	running map[string]string // sessionUUID → tty session ID
 }
 
-func NewService(store storage.AgentStore, instStore storage.InstanceStore, ttyMgr tty.Manager, dk docker.Client) Service {
+func NewService(store storage.AgentStore, instStore storage.InstanceStore, ttyMgr tty.Manager) Service {
 	return &service{
 		store:     store,
 		instStore: instStore,
 		ttyMgr:    ttyMgr,
-		docker:    dk,
 		running:   make(map[string]string),
 	}
 }
