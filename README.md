@@ -10,6 +10,11 @@
     Norn
 </h1>
 
+[![Release](https://img.shields.io/github/v/release/exa-pub/norn)](https://github.com/exa-pub/norn/releases)
+[![CI](https://github.com/exa-pub/norn/actions/workflows/release.yml/badge.svg)](https://github.com/exa-pub/norn/actions/workflows/release.yml)
+[![Go](https://img.shields.io/github/go-mod/go-version/exa-pub/norn)](go.mod)
+[![License](https://img.shields.io/github/license/exa-pub/norn)](LICENSE)
+
 ![Screenshot](docs/screenshot.png)
 
 ## Features
