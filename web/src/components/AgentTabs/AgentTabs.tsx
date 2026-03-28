@@ -113,7 +113,7 @@ export function AgentTabs({
         return (
           <Tabs.Panel key={id} value={id}>
             {agent?.running && agent.ttyId ? (
-              <Box style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+              <Box style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#1e1e1e" }}>
                 <AgentTerminal ttyId={agent.ttyId} />
               </Box>
             ) : isLaunching ? (

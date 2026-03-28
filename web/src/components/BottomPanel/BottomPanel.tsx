@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Loader, Tabs, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Group, Loader, Text, Tooltip } from "@mantine/core";
 import { IconCircleFilled, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -35,54 +35,80 @@ export function BottomPanel({
 }: BottomPanelProps) {
   return (
     <Box style={{ height: "100%", display: "flex", flexDirection: "column", borderTop: "1px solid var(--mantine-color-dark-4)" }}>
-      {/* Top-level tabs: Terminals | Logs */}
-      <Group px="sm" py={4} justify="space-between" bg="dark.7" style={{ flexShrink: 0 }}>
-        <Group gap="xs">
-          <Text
-            size="xs"
-            fw={activeBottomTab === "terminals" ? 700 : 400}
-            tt="uppercase"
-            c={activeBottomTab === "terminals" ? undefined : "dimmed"}
-            style={{ cursor: "pointer" }}
-            onClick={() => onSelectBottomTab("terminals")}
-          >
-            Terminal
-          </Text>
-          {terminals.length > 0 && (
-            <Text size="xs" c="dimmed">{terminals.length}</Text>
-          )}
-          <Text c="dimmed" size="xs">|</Text>
-          <Text
-            size="xs"
-            fw={activeBottomTab === "logs" ? 700 : 400}
-            tt="uppercase"
-            c={activeBottomTab === "logs" ? undefined : "dimmed"}
-            style={{ cursor: "pointer" }}
-            onClick={() => onSelectBottomTab("logs")}
-          >
-            Logs
-          </Text>
-          {logsActive && <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />}
-        </Group>
+      {/* Header: mode tabs + terminal tabs (inline) */}
+      <Group px="sm" py={4} gap="xs" bg="dark.7" wrap="nowrap" style={{ flexShrink: 0, borderBottom: "1px solid var(--mantine-color-dark-4)", overflow: "hidden" }}>
+        {/* Mode switcher */}
+        <Text
+          size="xs"
+          fw={activeBottomTab === "terminals" ? 700 : 400}
+          tt="uppercase"
+          c={activeBottomTab === "terminals" ? undefined : "dimmed"}
+          style={{ cursor: "pointer", flexShrink: 0 }}
+          onClick={() => onSelectBottomTab("terminals")}
+        >
+          Terminal
+        </Text>
+
+        {/* Terminal tabs inline — right after "Terminal" label */}
+        {activeBottomTab === "terminals" && terminals.length > 0 && (
+          <Group gap={2} wrap="nowrap" style={{ overflow: "hidden" }}>
+            {terminals.map((t) => (
+              <Group
+                key={t.id}
+                gap={4}
+                px={6}
+                py={2}
+                wrap="nowrap"
+                style={{
+                  cursor: "pointer",
+                  borderRadius: 4,
+                  background: activeTerminal === t.id ? "var(--mantine-color-dark-5)" : undefined,
+                  flexShrink: 0,
+                }}
+                onClick={() => onSelectTerminal(t.id)}
+              >
+                <IconCircleFilled size={6} color="var(--mantine-color-green-6)" />
+                <Text size="xs" c={activeTerminal === t.id ? undefined : "dimmed"}>{t.name || "bash"}</Text>
+                <IconX
+                  size={10}
+                  color="var(--mantine-color-dimmed)"
+                  style={{ cursor: "pointer" }}
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTerminal(t.id); }}
+                />
+              </Group>
+            ))}
+          </Group>
+        )}
         {activeBottomTab === "terminals" && (
           <Tooltip label="New terminal">
-            <ActionIcon size="sm" variant="subtle" onClick={onNewTerminal} loading={creatingTerminal}>
-              <IconPlus size={14} />
+            <ActionIcon size="xs" variant="subtle" onClick={onNewTerminal} loading={creatingTerminal} style={{ flexShrink: 0 }}>
+              <IconPlus size={12} />
             </ActionIcon>
           </Tooltip>
         )}
+
+        <Text c="dimmed" size="xs" style={{ flexShrink: 0 }}>|</Text>
+        <Text
+          size="xs"
+          fw={activeBottomTab === "logs" ? 700 : 400}
+          tt="uppercase"
+          c={activeBottomTab === "logs" ? undefined : "dimmed"}
+          style={{ cursor: "pointer", flexShrink: 0 }}
+          onClick={() => onSelectBottomTab("logs")}
+        >
+          Logs
+        </Text>
+        {logsActive && <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />}
       </Group>
 
-      {/* Content */}
-      <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      {/* Content — always same structure, no layout shift */}
+      <Box style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
         {activeBottomTab === "terminals" ? (
           <TerminalsContent
             terminals={terminals}
             activeTerminal={activeTerminal}
             creatingTerminal={creatingTerminal}
-            onSelectTerminal={onSelectTerminal}
             onNewTerminal={onNewTerminal}
-            onCloseTerminal={onCloseTerminal}
           />
         ) : (
           <LogsContent logs={logs} />
@@ -96,16 +122,12 @@ function TerminalsContent({
   terminals,
   activeTerminal,
   creatingTerminal,
-  onSelectTerminal,
   onNewTerminal,
-  onCloseTerminal,
 }: {
   terminals: TerminalProto[];
   activeTerminal: string | null;
   creatingTerminal: boolean;
-  onSelectTerminal: (id: string) => void;
   onNewTerminal: () => void;
-  onCloseTerminal: (id: string) => void;
 }) {
   if (terminals.length === 0) {
     return (
@@ -124,44 +146,15 @@ function TerminalsContent({
     );
   }
 
-  return (
-    <Tabs
-      value={activeTerminal}
-      onChange={(v) => v && onSelectTerminal(v)}
-      style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}
-      styles={{
-        root: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" },
-        panel: { flex: 1, minHeight: 0, overflow: "hidden" },
-      }}
-    >
-      <Tabs.List>
-        {terminals.map((t) => (
-          <Tabs.Tab
-            key={t.id}
-            value={t.id}
-            rightSection={
-              <IconX
-                size={12}
-                color="var(--mantine-color-dimmed)"
-                style={{ cursor: "pointer" }}
-                onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTerminal(t.id); }}
-              />
-            }
-          >
-            <Group gap={4}>
-              <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />
-              <Text size="xs">{t.name || "bash"}</Text>
-            </Group>
-          </Tabs.Tab>
-        ))}
-      </Tabs.List>
+  // Render only the active terminal (no Tabs — tabs are in the header now)
+  const activeId = activeTerminal ?? terminals[0]?.id;
+  const activeTerm = terminals.find((t) => t.id === activeId);
+  if (!activeTerm) return null;
 
-      {terminals.map((t) => (
-        <Tabs.Panel key={t.id} value={t.id} style={{ position: "relative" }}>
-          <TerminalView ttyId={t.ttyId} />
-        </Tabs.Panel>
-      ))}
-    </Tabs>
+  return (
+    <Box style={{ position: "absolute", inset: 0, background: "#1e1e1e" }}>
+      <TerminalView key={activeTerm.id} ttyId={activeTerm.ttyId} />
+    </Box>
   );
 }
 
