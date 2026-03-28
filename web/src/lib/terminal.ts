@@ -1,9 +1,14 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
 
 export interface TerminalHandle {
   terminal: Terminal;
   fitAddon: FitAddon;
+  searchAddon: SearchAddon;
   dispose: () => void;
 }
 
@@ -13,6 +18,7 @@ export interface TerminalHandle {
  */
 export function createTerminal(container: HTMLElement): TerminalHandle {
   const terminal = new Terminal({
+    allowProposedApi: true,
     cursorBlink: true,
     fontSize: 13,
     fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
@@ -24,8 +30,26 @@ export function createTerminal(container: HTMLElement): TerminalHandle {
   });
 
   const fitAddon = new FitAddon();
+  const searchAddon = new SearchAddon();
+  const unicode11Addon = new Unicode11Addon();
+  const webLinksAddon = new WebLinksAddon();
   terminal.loadAddon(fitAddon);
+  terminal.loadAddon(searchAddon);
+  terminal.loadAddon(unicode11Addon);
+  terminal.loadAddon(webLinksAddon);
   terminal.open(container);
+
+  // Activate Unicode 11 for correct emoji/CJK width
+  terminal.unicode.activeVersion = "11";
+
+  // WebGL renderer for better performance, fallback to default canvas
+  try {
+    const webglAddon = new WebglAddon();
+    webglAddon.onContextLoss(() => webglAddon.dispose());
+    terminal.loadAddon(webglAddon);
+  } catch {
+    // WebGL not available, default renderer is fine
+  }
 
   // Use ResizeObserver for reliable fitting (catches flex/panel resizes, not just window)
   const ro = new ResizeObserver(() => {
@@ -54,7 +78,7 @@ export function createTerminal(container: HTMLElement): TerminalHandle {
     terminal.dispose();
   };
 
-  return { terminal, fitAddon, dispose };
+  return { terminal, fitAddon, searchAddon, dispose };
 }
 
 const RECONNECT_BASE_MS = 500;
