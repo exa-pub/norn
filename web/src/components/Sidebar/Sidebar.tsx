@@ -1,5 +1,5 @@
-import { ActionIcon, Badge, Group, Menu, NavLink, ScrollArea, Skeleton, Stack, Text, Tooltip } from "@mantine/core";
-import { IconCircleFilled, IconDots, IconLoader2, IconPlayerPlay, IconPlayerStop, IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
+import { ActionIcon, Group, Menu, NavLink, ScrollArea, Skeleton, Stack, Text, Tooltip } from "@mantine/core";
+import { IconCircleFilled, IconDots, IconEdit, IconLoader2, IconPlayerPlay, IconPlayerStop, IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
 import { ContainerStatus } from "../../gen/norn/containers/v1/containers_pb";
 import type { Container } from "../../gen/norn/containers/v1/containers_pb";
 import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
@@ -17,6 +17,10 @@ interface SidebarProps {
   onStartInstance: (name: string) => void;
   onStopInstance: (name: string) => void;
   onDeleteInstance: (name: string) => void;
+  onStopAgent?: (instanceName: string, agentId: string) => void;
+  onDeleteAgent?: (instanceName: string, agentId: string) => void;
+  onLaunchAgent?: (instanceName: string, agentId: string) => void;
+  onRenameAgent?: (instanceName: string, agentId: string) => void;
 }
 
 function InstanceMenu({
@@ -64,6 +68,59 @@ function InstanceMenu({
   );
 }
 
+function AgentMenu({
+  agent,
+  onLaunch,
+  onStop,
+  onDelete,
+  onRename,
+}: {
+  agent: AgentSession;
+  onLaunch?: () => void;
+  onStop?: () => void;
+  onDelete?: () => void;
+  onRename?: () => void;
+}) {
+  return (
+    <Menu shadow="md" width={160} position="bottom-end" withinPortal>
+      <Menu.Target>
+        <ActionIcon
+          size="xs"
+          variant="subtle"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <IconDots size={14} />
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        {!agent.running && onLaunch && (
+          <Menu.Item leftSection={<IconPlayerPlay size={14} />} onClick={onLaunch}>
+            Launch
+          </Menu.Item>
+        )}
+        {agent.running && onStop && (
+          <Menu.Item leftSection={<IconPlayerStop size={14} />} onClick={onStop}>
+            Stop
+          </Menu.Item>
+        )}
+        {onRename && (
+          <Menu.Item leftSection={<IconEdit size={14} />} onClick={onRename}>
+            Rename
+          </Menu.Item>
+        )}
+        {onDelete && (
+          <>
+            <Menu.Divider />
+            <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={onDelete}>
+              Delete
+            </Menu.Item>
+          </>
+        )}
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 export function Sidebar({
   instances,
   agents,
@@ -76,6 +133,10 @@ export function Sidebar({
   onStartInstance,
   onStopInstance,
   onDeleteInstance,
+  onStopAgent,
+  onDeleteAgent,
+  onLaunchAgent,
+  onRenameAgent,
 }: SidebarProps) {
   return (
     <Stack gap={0} h="100%">
@@ -120,13 +181,6 @@ export function Sidebar({
                 </Group>
               }
               leftSection={<IconCircleFilled size={8} color={`var(--mantine-color-${color}-6)`} />}
-              rightSection={
-                agentList.length > 0 ? (
-                  <Badge size="xs" variant="filled" color="gray">
-                    {agentList.length}
-                  </Badge>
-                ) : null
-              }
               active={isSelected}
               onClick={() => onSelectInstance(inst.name)}
               opened={isSelected}
@@ -135,13 +189,21 @@ export function Sidebar({
               {agentList.map((agent) => (
                 <NavLink
                   key={agent.id}
-                  label={agent.name || agent.id.slice(0, 8)}
-                  leftSection={<IconRobot size={14} />}
-                  rightSection={
-                    <Badge size="xs" color={agent.running ? "green" : "gray"}>
-                      {agent.running ? "LIVE" : "IDLE"}
-                    </Badge>
+                  label={
+                    <Group gap={6} justify="space-between" wrap="nowrap" style={{ flex: 1 }}>
+                      <Text size="sm" truncate style={{ flex: 1 }}>{agent.name || agent.id.slice(0, 8)}</Text>
+                      <Group gap={2} wrap="nowrap" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                        <AgentMenu
+                          agent={agent}
+                          onLaunch={onLaunchAgent ? () => onLaunchAgent(inst.name, agent.id) : undefined}
+                          onStop={onStopAgent ? () => onStopAgent(inst.name, agent.id) : undefined}
+                          onRename={onRenameAgent ? () => onRenameAgent(inst.name, agent.id) : undefined}
+                          onDelete={onDeleteAgent ? () => onDeleteAgent(inst.name, agent.id) : undefined}
+                        />
+                      </Group>
+                    </Group>
                   }
+                  leftSection={<IconRobot size={14} color={agent.running ? "var(--mantine-color-green-6)" : undefined} />}
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     onSelectAgent(inst.name, agent.id);

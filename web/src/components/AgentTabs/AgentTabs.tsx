@@ -1,5 +1,5 @@
-import { ActionIcon, Box, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
-import { IconCircleFilled, IconPlayerStop, IconX } from "@tabler/icons-react";
+import { Box, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
+import { IconCircleFilled, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
 import { createTerminal, connectWebSocket } from "../../lib/terminal";
@@ -13,7 +13,6 @@ interface AgentTabsProps {
   onSelectTab: (agentId: string) => void;
   onCloseTab: (agentId: string) => void;
   onLaunch: (agentId: string) => void;
-  onStop: (agentId: string) => void;
   onReorderTabs?: (tabs: string[]) => void;
 }
 
@@ -25,7 +24,6 @@ export function AgentTabs({
   onSelectTab,
   onCloseTab,
   onLaunch,
-  onStop,
   onReorderTabs,
 }: AgentTabsProps) {
   const dragId = useRef<string | null>(null);
@@ -92,19 +90,12 @@ export function AgentTabs({
               onDragEnd={handleDragEnd}
               style={{ opacity: dragOverId === id ? 0.5 : 1 }}
               rightSection={
-                <Group gap={4} wrap="nowrap">
-                  {agent?.running && (
-                    <ActionIcon size="xs" variant="subtle" color="orange" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onStop(id); }}>
-                      <IconPlayerStop size={12} />
-                    </ActionIcon>
-                  )}
-                  <IconX
-                    size={12}
-                    color="var(--mantine-color-dimmed)"
-                    style={{ cursor: "pointer" }}
-                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTab(id); }}
-                  />
-                </Group>
+                <IconX
+                  size={12}
+                  color="var(--mantine-color-dimmed)"
+                  style={{ cursor: "pointer" }}
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTab(id); }}
+                />
               }
             >
               <Group gap={4}>

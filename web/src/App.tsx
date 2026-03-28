@@ -1,4 +1,4 @@
-import { Box, Button, Group, Modal, Text } from "@mantine/core";
+import { Box, Button, Group, Modal, Text, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar/Sidebar";
@@ -79,6 +79,8 @@ export function App() {
   const [createInstanceOpen, setCreateInstanceOpen] = useState(false);
   const [createAgentFor, setCreateAgentFor] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [renameAgent, setRenameAgent] = useState<{ instanceName: string; agentId: string; currentName: string } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   // Resizable panels
   const [sidebarWidth, setSidebarWidth] = useState(260);
@@ -281,14 +283,49 @@ export function App() {
     }
   }, [selectedInstance]);
 
-  const handleStop = useCallback(async (agentId: string) => {
-    if (!selectedInstance) return;
+  const handleStopAgentSidebar = useCallback(async (instanceName: string, agentId: string) => {
     try {
-      await agentClient.stopAgent({ instanceName: selectedInstance, sessionId: agentId });
+      await agentClient.stopAgent({ instanceName, sessionId: agentId });
     } catch (e: any) {
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to stop agent", color: "red" });
     }
-  }, [selectedInstance]);
+  }, []);
+
+  const handleLaunchAgentSidebar = useCallback(async (instanceName: string, agentId: string) => {
+    setLaunchingAgents((prev) => new Set(prev).add(agentId));
+    try {
+      await agentClient.launchAgent({ instanceName, sessionId: agentId, prompt: "" });
+    } catch (e: any) {
+      notifications.show({ title: "Agent error", message: e?.message ?? "Failed to launch agent", color: "red" });
+    } finally {
+      setLaunchingAgents((prev) => { const next = new Set(prev); next.delete(agentId); return next; });
+    }
+  }, []);
+
+  const handleRenameAgent = useCallback((instanceName: string, agentId: string) => {
+    const agent = agents.find((a) => a.id === agentId);
+    setRenameValue(agent?.name || "");
+    setRenameAgent({ instanceName, agentId, currentName: agent?.name || "" });
+  }, [agents]);
+
+  const confirmRename = useCallback(async () => {
+    if (!renameAgent) return;
+    const { instanceName, agentId } = renameAgent;
+    setRenameAgent(null);
+    try {
+      await agentClient.updateAgentSessionName({ instanceName, sessionId: agentId, name: renameValue });
+    } catch (e: any) {
+      notifications.show({ title: "Agent error", message: e?.message ?? "Failed to rename agent", color: "red" });
+    }
+  }, [renameAgent, renameValue]);
+
+  const handleDeleteAgent = useCallback(async (instanceName: string, agentId: string) => {
+    try {
+      await agentClient.deleteAgentSession({ instanceName, sessionId: agentId });
+    } catch (e: any) {
+      notifications.show({ title: "Agent error", message: e?.message ?? "Failed to delete agent", color: "red" });
+    }
+  }, []);
 
   // Instance actions (for sidebar)
   const handleStartInstance = useCallback(async (name: string) => {
@@ -391,6 +428,10 @@ export function App() {
             onStartInstance={handleStartInstance}
             onStopInstance={handleStopInstance}
             onDeleteInstance={handleDeleteInstance}
+            onStopAgent={handleStopAgentSidebar}
+            onLaunchAgent={handleLaunchAgentSidebar}
+            onDeleteAgent={handleDeleteAgent}
+            onRenameAgent={handleRenameAgent}
           />
         </Box>
 
@@ -423,7 +464,6 @@ export function App() {
               }
               onCloseTab={closeAgentTab}
               onLaunch={handleLaunch}
-              onStop={handleStop}
               onReorderTabs={(tabs) => {
                 if (!selectedInstance) return;
                 setOpenAgentTabs((prev) => new Map(prev).set(selectedInstance, tabs));
@@ -482,6 +522,20 @@ export function App() {
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
           <Button color="red" onClick={confirmDelete}>Delete</Button>
+        </Group>
+      </Modal>
+
+      <Modal opened={!!renameAgent} onClose={() => setRenameAgent(null)} title="Rename Agent" size="sm">
+        <TextInput
+          label="Name"
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.currentTarget.value)}
+          onKeyDown={(e) => e.key === "Enter" && confirmRename()}
+          autoFocus
+        />
+        <Group justify="flex-end" mt="md">
+          <Button variant="default" onClick={() => setRenameAgent(null)}>Cancel</Button>
+          <Button onClick={confirmRename}>Rename</Button>
         </Group>
       </Modal>
     </Box>
