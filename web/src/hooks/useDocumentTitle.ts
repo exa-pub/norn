@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
-const FAVICON_SIZE = 32;
+const FAVICON_SIZE = 64;
+const DOT_RADIUS = 10;
 const cache = new Map<string, string>();
 
 function createFaviconUrl(color: string): string {
@@ -11,10 +12,36 @@ function createFaviconUrl(color: string): string {
   canvas.width = FAVICON_SIZE;
   canvas.height = FAVICON_SIZE;
   const ctx = canvas.getContext("2d")!;
+
+  const r = 14;
   ctx.beginPath();
-  ctx.arc(FAVICON_SIZE / 2, FAVICON_SIZE / 2, FAVICON_SIZE / 2 - 2, 0, Math.PI * 2);
+  ctx.moveTo(r, 0);
+  ctx.lineTo(FAVICON_SIZE - r, 0);
+  ctx.quadraticCurveTo(FAVICON_SIZE, 0, FAVICON_SIZE, r);
+  ctx.lineTo(FAVICON_SIZE, FAVICON_SIZE - r);
+  ctx.quadraticCurveTo(FAVICON_SIZE, FAVICON_SIZE, FAVICON_SIZE - r, FAVICON_SIZE);
+  ctx.lineTo(r, FAVICON_SIZE);
+  ctx.quadraticCurveTo(0, FAVICON_SIZE, 0, FAVICON_SIZE - r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = "#0F0F0F";
+  ctx.fill();
+
+  ctx.font = "bold 38px 'Arial Black', sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#FF2D55";
+  ctx.strokeStyle = "#0F0F0F";
+  ctx.lineWidth = 2;
+  ctx.strokeText("{}", FAVICON_SIZE / 2, FAVICON_SIZE / 2);
+  ctx.fillText("{}", FAVICON_SIZE / 2, FAVICON_SIZE / 2);
+
+  ctx.beginPath();
+  ctx.arc(FAVICON_SIZE - DOT_RADIUS - 1, FAVICON_SIZE - DOT_RADIUS - 1, DOT_RADIUS, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
+
   const url = canvas.toDataURL("image/png");
   cache.set(color, url);
   return url;
