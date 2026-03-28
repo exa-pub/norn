@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,6 +30,7 @@ import (
 	"github.com/exa-pub/norn/internal/service/terminal"
 	"github.com/exa-pub/norn/internal/service/tty"
 	"github.com/exa-pub/norn/pkg/dockerutils"
+	"github.com/exa-pub/norn/web"
 )
 
 func main() {
@@ -48,9 +52,15 @@ func rootCmd() *cobra.Command {
 		Use:   "norn",
 		Short: "Norn — AI agent devcontainer manager",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Resolve secret: flag > env > generate.
+			// Resolve secret: flag > env > file > generate.
 			if secret == "" {
 				secret = os.Getenv("NORN_SECRET")
+			}
+			secretFile := filepath.Join(storageDir, "secret")
+			if secret == "" {
+				if data, err := os.ReadFile(secretFile); err == nil {
+					secret = strings.TrimSpace(string(data))
+				}
 			}
 			if secret == "" {
 				generated, err := middleware.GenerateSecret()
@@ -59,6 +69,9 @@ func rootCmd() *cobra.Command {
 				}
 				secret = generated
 			}
+			// Persist for next restart.
+			_ = os.MkdirAll(storageDir, 0o755)
+			_ = os.WriteFile(secretFile, []byte(secret+"\n"), 0o600)
 
 			return serve(addr, storageDir, secret, &dcOpts)
 		},
@@ -101,33 +114,40 @@ func serve(addr, storageDir, secret string, dcOpts *devcontainer.GlobalOptions) 
 	agentSvc := agent.NewService(store, store, ttyMgr, dk)
 
 	r := chi.NewRouter()
-
-	// Middleware
 	r.Use(chimiddleware.Recoverer)
-	r.Use(middleware.Auth(secret))
 
-	// ConnectRPC services
-	{
-		path, handler := containersv1connect.NewContainerServiceHandler(
-			nornconnect.NewContainerHandler(instanceSvc),
-		)
-		r.Handle(path+"*", handler)
-	}
-	{
-		path, handler := agentsv1connect.NewAgentServiceHandler(
-			nornconnect.NewAgentHandler(agentSvc),
-		)
-		r.Handle(path+"*", handler)
-	}
-	{
-		path, handler := terminalsv1connect.NewTerminalServiceHandler(
-			nornconnect.NewTerminalHandler(terminalSvc),
-		)
-		r.Handle(path+"*", handler)
-	}
+	// Authenticated API routes
+	r.Group(func(api chi.Router) {
+		api.Use(middleware.Auth(secret))
 
-	// WebSocket PTY bridge
-	r.Handle("/ws/*", ws.Handler(ttyMgr))
+		// ConnectRPC services
+		{
+			path, handler := containersv1connect.NewContainerServiceHandler(
+				nornconnect.NewContainerHandler(instanceSvc),
+			)
+			api.Handle(path+"*", handler)
+		}
+		{
+			path, handler := agentsv1connect.NewAgentServiceHandler(
+				nornconnect.NewAgentHandler(agentSvc),
+			)
+			api.Handle(path+"*", handler)
+		}
+		{
+			path, handler := terminalsv1connect.NewTerminalServiceHandler(
+				nornconnect.NewTerminalHandler(terminalSvc),
+			)
+			api.Handle(path+"*", handler)
+		}
+
+		// WebSocket PTY bridge
+		api.Handle("/ws/*", ws.Handler(ttyMgr))
+	})
+
+	// Public: embedded frontend (no auth — JS sets cookie from URL fragment)
+	webContent, _ := fs.Sub(web.DistFS, "dist")
+	fileServer := http.FileServer(http.FS(webContent))
+	r.Handle("/*", fileServer)
 
 	srv := &http.Server{Addr: addr, Handler: r}
 
