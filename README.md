@@ -12,23 +12,41 @@ AI agent devcontainer manager. Runs isolated development environments and provid
 - **Persistent storage** — instance state, agent sessions and logs survive restarts
 - **Web UI** — sidebar with instances and agents, tabbed agent view, bottom panel with terminals and logs
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/exa-pub/norn/main/install.sh | sh
+```
+
+To install a specific version:
+
+```bash
+NORN_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/exa-pub/norn/main/install.sh | sh
+```
+
 ## Quick start
 
 ### Prerequisites
 
-- Go 1.26+
-- Node.js (LTS)
 - Docker
 - [devcontainer CLI](https://github.com/devcontainers/cli)
 
-### Build and run
+### Run
+
+```bash
+norn --workspace-folder examples/simple --storage-dir .norn
+```
+
+Open the URL printed in the terminal. The auth secret is passed via URL fragment on first launch.
+
+### Build from source
+
+Requires Go 1.26+ and Node.js (LTS).
 
 ```bash
 make build
 ./bin/norn --workspace-folder examples/simple --storage-dir .norn
 ```
-
-Open the URL printed in the terminal. The auth secret is passed via URL fragment on first launch.
 
 ### Development
 
