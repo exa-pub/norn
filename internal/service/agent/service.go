@@ -144,7 +144,7 @@ func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt st
 	s.mu.Unlock()
 
 	// Probe whether a Claude session with this ID already exists.
-	// Run a non-PTY exec with json-stream format (requires no TTY).
+	// Run a non-PTY exec with stream-json format (requires no TTY).
 	// If --resume fails, the session doesn't exist yet → first launch without --resume.
 	sessionExists := s.probeSessionExists(ctx, instanceName, sessionID)
 
@@ -203,7 +203,7 @@ func (s *service) Stop(ctx context.Context, instanceName, sessionID string) (*en
 }
 
 // probeSessionExists checks if a Claude session with the given ID already exists
-// by running a non-PTY exec with json-stream format. If --resume fails, the session
+// by running a non-PTY exec with stream-json format. If --resume fails, the session
 // doesn't exist yet.
 func (s *service) probeSessionExists(ctx context.Context, instanceName, sessionID string) bool {
 	probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -214,8 +214,8 @@ func (s *service) probeSessionExists(ctx context.Context, instanceName, sessionI
 		IDLabels: map[string]string{"norn.name": instanceName},
 		Cmd: []string{
 			"claude",
-			"--input-format", "json-stream",
-			"--output-format", "json-stream",
+			"--input-format", "stream-json",
+			"--output-format", "stream-json",
 			"--verbose",
 			"--resume", sessionID,
 		},
@@ -240,4 +240,3 @@ func (s *service) toEntity(id, name string) *entity.AgentSession {
 		Running: running, TTYID: ttyID,
 	}
 }
-
