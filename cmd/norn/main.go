@@ -33,6 +33,11 @@ import (
 	"github.com/exa-pub/norn/web"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+)
+
 func main() {
 	if err := rootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -96,6 +101,14 @@ func rootCmd() *cobra.Command {
 	f.StringVar(&dcOpts.DotfilesCommand, "dotfiles-install-command", "", "dotfiles install command")
 	f.StringVar(&dcOpts.DotfilesPath, "dotfiles-target-path", "", "dotfiles target path")
 	f.StringVar(&dcOpts.SecretsFile, "secrets-file", "", "path to secrets JSON file")
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Print version information",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("norn %s (%s)\n", version, commit)
+		},
+	})
 
 	return cmd
 }
