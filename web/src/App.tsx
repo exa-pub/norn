@@ -11,6 +11,7 @@ import { useInstances } from "./hooks/useInstances";
 import { useAgents } from "./hooks/useAgents";
 import { useTerminals } from "./hooks/useTerminals";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
+import { useOptimistic } from "./hooks/useOptimistic";
 import { agentClient, containerClient, terminalClient } from "./client";
 import { ContainerStatus } from "./gen/norn/containers/v1/containers_pb";
 import type { AgentSession } from "./gen/norn/agents/v1/agents_pb";
@@ -21,50 +22,25 @@ const MAX_SIDEBAR = 500;
 const MIN_BOTTOM = 80;
 const MAX_BOTTOM_RATIO = 0.7;
 
+const getInstanceId = (i: { name: string }) => i.name;
+const getAgentId = (a: { id: string }) => a.id;
+const getTerminalId = (t: { id: string }) => t.id;
+
 export function App() {
   const { instances: polledInstances, loading: instancesLoading } = useInstances();
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
 
-  // Optimistic overlays: status overrides and hidden (deleted) instances
-  const [optimisticStatus, setOptimisticStatus] = useState<Map<string, ContainerStatus>>(new Map());
-  const [hiddenInstances, setHiddenInstances] = useState<Set<string>>(new Set());
+  // Optimistic wrappers
+  const instOpt = useOptimistic(polledInstances, getInstanceId);
+  const instances = instOpt.items;
 
-  // Clear optimistic overrides once polling catches up
-  useEffect(() => {
-    if (optimisticStatus.size === 0) return;
-    const stale: string[] = [];
-    for (const [name, status] of optimisticStatus) {
-      const real = polledInstances.find((i) => i.name === name);
-      if (real && real.status === status) stale.push(name);
-    }
-    if (stale.length > 0) {
-      setOptimisticStatus((prev) => { const m = new Map(prev); stale.forEach((k) => m.delete(k)); return m; });
-    }
-  }, [polledInstances, optimisticStatus]);
+  const polledAgents = useAgents(selectedInstance);
+  const agentOpt = useOptimistic(polledAgents, getAgentId);
+  const agents = agentOpt.items;
 
-  // Clear hidden instances once they disappear from polling
-  useEffect(() => {
-    if (hiddenInstances.size === 0) return;
-    const polledNames = new Set(polledInstances.map((i) => i.name));
-    const stale = [...hiddenInstances].filter((n) => !polledNames.has(n));
-    if (stale.length > 0) {
-      setHiddenInstances((prev) => { const s = new Set(prev); stale.forEach((k) => s.delete(k)); return s; });
-    }
-  }, [polledInstances, hiddenInstances]);
-
-  const instances = useMemo(() => {
-    return polledInstances
-      .filter((i) => !hiddenInstances.has(i.name))
-      .map((i) => {
-        const override = optimisticStatus.get(i.name);
-        if (override !== undefined && i.status !== override) {
-          return { ...i, status: override } as typeof i;
-        }
-        return i;
-      });
-  }, [polledInstances, optimisticStatus, hiddenInstances]);
-  const agents = useAgents(selectedInstance);
-  const terminals = useTerminals(selectedInstance);
+  const polledTerminals = useTerminals(selectedInstance);
+  const termOpt = useOptimistic(polledTerminals, getTerminalId);
+  const terminals = termOpt.items;
 
   // Per-instance open tabs
   const [openAgentTabs, setOpenAgentTabs] = useState<Map<string, string[]>>(new Map());
@@ -72,16 +48,15 @@ export function App() {
   const [activeTerminal, setActiveTerminal] = useState<string | null>(null);
 
   // Loading states
-  const [launchingAgents, setLaunchingAgents] = useState<Set<string>>(new Set());
   const [creatingTerminal, setCreatingTerminal] = useState(false);
 
   // Modals
   const [createInstanceOpen, setCreateInstanceOpen] = useState(false);
   const [createAgentFor, setCreateAgentFor] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [renameAgent, setRenameAgent] = useState<{ instanceName: string; agentId: string; currentName: string } | null>(null);
+  const [renameAgent, setRenameAgent] = useState<{ instanceName: string; agentId: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [renameTerminal, setRenameTerminal] = useState<{ id: string; currentName: string } | null>(null);
+  const [renameTerminal, setRenameTerminal] = useState<{ id: string } | null>(null);
   const [renameTerminalValue, setRenameTerminalValue] = useState("");
 
   // Resizable panels
@@ -114,7 +89,7 @@ export function App() {
     const prev = prevAgentsRef.current;
     for (const agent of agents) {
       const wasRunning = prev.get(agent.id);
-      if (wasRunning && !agent.running) {
+      if (wasRunning && !agent.running && !agent._pending) {
         notifications.show({
           title: "Agent finished",
           message: agent.name || agent.id.slice(0, 8),
@@ -183,7 +158,6 @@ export function App() {
           if (abort.signal.aborted) break;
           setLogs((prev) => {
             const next = [...prev, entry];
-            // Keep last 5000 lines
             return next.length > 5000 ? next.slice(-5000) : next;
           });
         }
@@ -211,20 +185,19 @@ export function App() {
     setActiveAgentTab((prev) => new Map(prev).set(instanceName, agentId));
   }, []);
 
-  // Auto-launch effect: when an idle agent tab is opened and container is running
+  // Auto-launch effect
   useEffect(() => {
     if (!selectedInstance || !currentActiveTab) return;
     const inst = instances.find((i) => i.name === selectedInstance);
     if (!inst || inst.status !== ContainerStatus.RUNNING) return;
 
     const agent = agents.find((a) => a.id === currentActiveTab);
-    if (!agent || agent.running) return;
-    if (launchingAgents.has(currentActiveTab)) return;
+    if (!agent || agent.running || agent._pending) return;
     if (autoLaunchedRef.current.has(currentActiveTab)) return;
 
     autoLaunchedRef.current.add(currentActiveTab);
     handleLaunch(currentActiveTab);
-  }, [currentActiveTab, selectedInstance, instances, agents, launchingAgents]);
+  }, [currentActiveTab, selectedInstance, instances, agents]);
 
   const closeAgentTab = useCallback((agentId: string) => {
     if (!selectedInstance) return;
@@ -235,7 +208,6 @@ export function App() {
       m.set(selectedInstance, tabs);
       return m;
     });
-    // Switch to another tab if closing the active one
     setActiveAgentTab((prev) => {
       if (prev.get(selectedInstance) !== agentId) return prev;
       const tabs = (openAgentTabs.get(selectedInstance) ?? []).filter((id) => id !== agentId);
@@ -249,123 +221,144 @@ export function App() {
     });
   }, [selectedInstance, openAgentTabs]);
 
+  // ─── Terminal actions ───
+
   const handleNewTerminal = useCallback(async () => {
     if (!selectedInstance) return;
     setCreatingTerminal(true);
     try {
       const res = await terminalClient.createTerminal({ instanceName: selectedInstance, name: "" });
-      if (res.terminal) setActiveTerminal(res.terminal.id);
+      if (res.terminal) {
+        termOpt.addOptimistic(res.terminal);
+        setActiveTerminal(res.terminal.id);
+      }
     } catch (e: any) {
       notifications.show({ title: "Terminal error", message: e?.message ?? "Failed to create terminal", color: "red" });
     } finally {
       setCreatingTerminal(false);
     }
-  }, [selectedInstance]);
+  }, [selectedInstance, termOpt]);
 
   const handleCloseTerminal = useCallback(async (id: string) => {
+    termOpt.hide(id);
+    if (activeTerminal === id) setActiveTerminal(null);
     try {
       await terminalClient.closeTerminal({ id });
-      if (activeTerminal === id) setActiveTerminal(null);
-    } catch { /* ignore */ }
-  }, [activeTerminal]);
+    } catch {
+      termOpt.clear(id); // unhide on error
+    }
+  }, [activeTerminal, termOpt]);
 
   const handleRenameTerminalOpen = useCallback((id: string) => {
     const t = terminals.find((t) => t.id === id);
     setRenameTerminalValue(t?.name || "");
-    setRenameTerminal({ id, currentName: t?.name || "" });
+    setRenameTerminal({ id });
   }, [terminals]);
 
   const confirmRenameTerminal = useCallback(async () => {
     if (!renameTerminal) return;
     const { id } = renameTerminal;
+    const newName = renameTerminalValue;
     setRenameTerminal(null);
+    termOpt.patch(id, { name: newName } as Partial<typeof terminals[0]>);
     try {
-      await terminalClient.renameTerminal({ id, name: renameTerminalValue });
+      await terminalClient.renameTerminal({ id, name: newName });
     } catch (e: any) {
+      termOpt.clear(id);
       notifications.show({ title: "Terminal error", message: e?.message ?? "Failed to rename terminal", color: "red" });
     }
-  }, [renameTerminal, renameTerminalValue]);
+  }, [renameTerminal, renameTerminalValue, termOpt]);
+
+  // ─── Agent actions ───
 
   const handleLaunch = useCallback(async (agentId: string) => {
     if (!selectedInstance) return;
-    setLaunchingAgents((prev) => new Set(prev).add(agentId));
+    agentOpt.patch(agentId, { running: true } as Partial<AgentSession>);
+    agentOpt.setPending(agentId, true);
     try {
       await agentClient.launchAgent({ instanceName: selectedInstance, sessionId: agentId, prompt: "" });
     } catch (e: any) {
+      agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to launch agent", color: "red" });
     } finally {
-      setLaunchingAgents((prev) => {
-        const next = new Set(prev);
-        next.delete(agentId);
-        return next;
-      });
+      agentOpt.setPending(agentId, false);
     }
-  }, [selectedInstance]);
+  }, [selectedInstance, agentOpt]);
 
   const handleStopAgentSidebar = useCallback(async (instanceName: string, agentId: string) => {
+    agentOpt.patch(agentId, { running: false } as Partial<AgentSession>);
     try {
       await agentClient.stopAgent({ instanceName, sessionId: agentId });
     } catch (e: any) {
+      agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to stop agent", color: "red" });
     }
-  }, []);
+  }, [agentOpt]);
 
   const handleLaunchAgentSidebar = useCallback(async (instanceName: string, agentId: string) => {
-    setLaunchingAgents((prev) => new Set(prev).add(agentId));
+    agentOpt.patch(agentId, { running: true } as Partial<AgentSession>);
+    agentOpt.setPending(agentId, true);
     try {
       await agentClient.launchAgent({ instanceName, sessionId: agentId, prompt: "" });
     } catch (e: any) {
+      agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to launch agent", color: "red" });
     } finally {
-      setLaunchingAgents((prev) => { const next = new Set(prev); next.delete(agentId); return next; });
+      agentOpt.setPending(agentId, false);
     }
-  }, []);
+  }, [agentOpt]);
 
   const handleRenameAgent = useCallback((instanceName: string, agentId: string) => {
     const agent = agents.find((a) => a.id === agentId);
     setRenameValue(agent?.name || "");
-    setRenameAgent({ instanceName, agentId, currentName: agent?.name || "" });
+    setRenameAgent({ instanceName, agentId });
   }, [agents]);
 
   const confirmRename = useCallback(async () => {
     if (!renameAgent) return;
     const { instanceName, agentId } = renameAgent;
+    const newName = renameValue;
     setRenameAgent(null);
+    agentOpt.patch(agentId, { name: newName } as Partial<AgentSession>);
     try {
-      await agentClient.updateAgentSessionName({ instanceName, sessionId: agentId, name: renameValue });
+      await agentClient.updateAgentSessionName({ instanceName, sessionId: agentId, name: newName });
     } catch (e: any) {
+      agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to rename agent", color: "red" });
     }
-  }, [renameAgent, renameValue]);
+  }, [renameAgent, renameValue, agentOpt]);
 
   const handleDeleteAgent = useCallback(async (instanceName: string, agentId: string) => {
+    agentOpt.hide(agentId);
     try {
       await agentClient.deleteAgentSession({ instanceName, sessionId: agentId });
     } catch (e: any) {
+      agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to delete agent", color: "red" });
     }
-  }, []);
+  }, [agentOpt]);
 
-  // Instance actions (for sidebar)
+  // ─── Instance actions ───
+
   const handleStartInstance = useCallback(async (name: string) => {
-    setOptimisticStatus((prev) => new Map(prev).set(name, ContainerStatus.STARTING));
+    instOpt.patch(name, { status: ContainerStatus.STARTING } as any);
     try {
       await containerClient.startContainer({ name, removeExisting: true });
     } catch (e: any) {
-      setOptimisticStatus((prev) => { const m = new Map(prev); m.delete(name); return m; });
+      instOpt.clear(name);
       notifications.show({ title: "Instance error", message: e?.message ?? "Failed to start instance", color: "red" });
     }
-  }, []);
+  }, [instOpt]);
 
   const handleStopInstance = useCallback(async (name: string) => {
-    setOptimisticStatus((prev) => new Map(prev).set(name, ContainerStatus.STOPPED));
+    instOpt.patch(name, { status: ContainerStatus.STOPPED } as any);
     try {
       await containerClient.stopContainer({ name });
     } catch (e: any) {
-      setOptimisticStatus((prev) => { const m = new Map(prev); m.delete(name); return m; });
+      instOpt.clear(name);
       notifications.show({ title: "Instance error", message: e?.message ?? "Failed to stop instance", color: "red" });
     }
-  }, []);
+  }, [instOpt]);
 
   const handleDeleteInstance = useCallback(async (name: string) => {
     setDeleteConfirm(name);
@@ -375,15 +368,15 @@ export function App() {
     if (!deleteConfirm) return;
     const name = deleteConfirm;
     setDeleteConfirm(null);
-    setHiddenInstances((prev) => new Set(prev).add(name));
+    instOpt.hide(name);
     if (selectedInstance === name) setSelectedInstance(null);
     try {
       await containerClient.deleteContainer({ name });
     } catch (e: any) {
-      setHiddenInstances((prev) => { const s = new Set(prev); s.delete(name); return s; });
+      instOpt.clear(name);
       notifications.show({ title: "Instance error", message: e?.message ?? "Failed to delete instance", color: "red" });
     }
-  }, [deleteConfirm, selectedInstance]);
+  }, [deleteConfirm, selectedInstance, instOpt]);
 
   // --- Resize handlers ---
   const handleSidebarResize = useCallback((e: React.MouseEvent) => {
@@ -476,7 +469,7 @@ export function App() {
               agents={agents}
               openTabs={currentOpenTabs}
               activeTab={currentActiveTab}
-              launchingAgents={launchingAgents}
+              launchingAgents={new Set(agents.filter((a) => a._pending).map((a) => a.id))}
               onSelectTab={(id) =>
                 selectedInstance &&
                 setActiveAgentTab((prev) => new Map(prev).set(selectedInstance, id))
@@ -551,7 +544,7 @@ export function App() {
           value={renameValue}
           onChange={(e) => setRenameValue(e.currentTarget.value)}
           onKeyDown={(e) => e.key === "Enter" && confirmRename()}
-          autoFocus
+          data-autofocus
         />
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => setRenameAgent(null)}>Cancel</Button>
@@ -565,7 +558,7 @@ export function App() {
           value={renameTerminalValue}
           onChange={(e) => setRenameTerminalValue(e.currentTarget.value)}
           onKeyDown={(e) => e.key === "Enter" && confirmRenameTerminal()}
-          autoFocus
+          data-autofocus
         />
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => setRenameTerminal(null)}>Cancel</Button>
