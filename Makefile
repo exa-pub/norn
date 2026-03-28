@@ -18,6 +18,7 @@ build: go
 
 # --- Tests ---
 test:
+	@mkdir -p web/dist && touch web/dist/placeholder
 	go test ./...
 
 test-integration:
