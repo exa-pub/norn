@@ -36,7 +36,6 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	workspaceFolder := filepath.Join(root, "examples", "simple")
-	configPath := filepath.Join(workspaceFolder, ".devcontainer", "devcontainer.json")
 
 	// Temp NornHome.
 	storageDir, err = os.MkdirTemp("", "norn-integration-*")
@@ -53,15 +52,12 @@ func TestMain(m *testing.M) {
 	}
 	dc := devcontainer.New()
 
-	instanceSvc = instance.NewService(store, store, dc, dk, instance.Config{
+	dcOpts := &devcontainer.GlobalOptions{
 		WorkspaceFolder: workspaceFolder,
-		ConfigPath:      configPath,
-	})
+	}
 
-	ttyMgr = tty.NewManager(dc, tty.Config{
-		WorkspaceFolder: workspaceFolder,
-		ConfigPath:      configPath,
-	})
+	instanceSvc = instance.NewService(store, store, dc, dk, dcOpts)
+	ttyMgr = tty.NewManager(dc, dcOpts)
 
 	terminalSvc = terminal.NewService(ttyMgr)
 	agentSvc = agent.NewService(store, store, ttyMgr, dk)

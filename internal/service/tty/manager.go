@@ -42,11 +42,6 @@ func (p *PTYStream) Resize(cols, rows uint) error {
 	return p.resize(cols, rows)
 }
 
-// Config for devcontainer exec invocations.
-type Config struct {
-	WorkspaceFolder string
-	ConfigPath      string
-}
 
 type session struct {
 	id           string
@@ -56,17 +51,17 @@ type session struct {
 }
 
 type manager struct {
-	dc  devcontainer.Client
-	cfg Config
+	dc   devcontainer.Client
+	opts *devcontainer.GlobalOptions
 
 	mu       sync.Mutex
 	sessions map[string]*session
 }
 
-func NewManager(dc devcontainer.Client, cfg Config) Manager {
+func NewManager(dc devcontainer.Client, opts *devcontainer.GlobalOptions) Manager {
 	return &manager{
 		dc:       dc,
-		cfg:      cfg,
+		opts:     opts,
 		sessions: make(map[string]*session),
 	}
 }
@@ -77,9 +72,8 @@ func (m *manager) Create(ctx context.Context, instanceName string, cmd []string,
 	}
 
 	proc, err := m.dc.Exec(ctx, devcontainer.ExecOptions{
-		WorkspaceFolder: m.cfg.WorkspaceFolder,
-		ConfigPath:      m.cfg.ConfigPath,
-		IDLabels:        map[string]string{"norn.name": instanceName},
+		Global:   m.opts,
+		IDLabels: map[string]string{"norn.name": instanceName},
 		Cmd:             cmd,
 		Cols:            120,
 		Rows:            40,

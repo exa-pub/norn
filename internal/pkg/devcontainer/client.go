@@ -15,28 +15,26 @@ import (
 // --- Up ---
 
 type UpOptions struct {
-	WorkspaceFolder string
-	ConfigPath      string
-	Labels          map[string]string
-	Env             map[string]string
-	RemoveExisting  bool
+	Global         *GlobalOptions
+	Labels         map[string]string
+	Env            map[string]string
+	RemoveExisting bool
 }
 
 // --- Exec ---
 
 type ExecOptions struct {
-	WorkspaceFolder string
-	ConfigPath      string
-	IDLabels        map[string]string // --id-label key=value
-	Cmd             []string
-	Cols            uint16
-	Rows            uint16
+	Global   *GlobalOptions
+	IDLabels map[string]string
+	Cmd      []string
+	Cols     uint16
+	Rows     uint16
 }
 
 // ExecProcess is a running devcontainer exec with a host-side PTY.
 type ExecProcess struct {
-	PTY *os.File  // master side of host PTY (read + write)
-	Cmd *exec.Cmd // underlying process
+	PTY *os.File
+	Cmd *exec.Cmd
 }
 
 func (p *ExecProcess) Resize(cols, rows uint16) error {
@@ -63,10 +61,10 @@ func New() Client {
 type client struct{}
 
 func (c *client) Up(ctx context.Context, opts UpOptions, stdout, stderr io.Writer) (string, error) {
-	args := []string{"up",
-		"--workspace-folder", opts.WorkspaceFolder,
-		"--override-config", opts.ConfigPath,
-	}
+	args := []string{"up"}
+	args = append(args, opts.Global.baseArgs()...)
+	args = append(args, opts.Global.upArgs()...)
+
 	for k, v := range opts.Labels {
 		args = append(args, "--id-label", k+"="+v)
 	}
@@ -97,10 +95,9 @@ func (c *client) Up(ctx context.Context, opts UpOptions, stdout, stderr io.Write
 }
 
 func (c *client) Exec(ctx context.Context, opts ExecOptions) (*ExecProcess, error) {
-	args := []string{"exec",
-		"--workspace-folder", opts.WorkspaceFolder,
-		"--override-config", opts.ConfigPath,
-	}
+	args := []string{"exec"}
+	args = append(args, opts.Global.baseArgs()...)
+
 	for k, v := range opts.IDLabels {
 		args = append(args, "--id-label", k+"="+v)
 	}

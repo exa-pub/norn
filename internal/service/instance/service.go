@@ -24,11 +24,6 @@ type StartOptions struct {
 	RemoveExisting bool
 }
 
-type Config struct {
-	WorkspaceFolder string
-	ConfigPath      string
-}
-
 type Service interface {
 	Create(ctx context.Context, name string) (*entity.Instance, error)
 	Get(ctx context.Context, name string) (*entity.Instance, error)
@@ -49,7 +44,7 @@ type service struct {
 	home   storage.Home
 	dc     devcontainer.Client
 	docker *client.Client
-	cfg    Config
+	opts   *devcontainer.GlobalOptions
 
 	mu     sync.Mutex
 	active map[string]*activeEntry
@@ -59,14 +54,14 @@ type service struct {
 	wg     sync.WaitGroup
 }
 
-func NewService(store storage.InstanceStore, home storage.Home, dc devcontainer.Client, dk *client.Client, cfg Config) Service {
+func NewService(store storage.InstanceStore, home storage.Home, dc devcontainer.Client, dk *client.Client, opts *devcontainer.GlobalOptions) Service {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &service{
 		store:  store,
 		home:   home,
 		dc:     dc,
 		docker: dk,
-		cfg:    cfg,
+		opts:   opts,
 		active: make(map[string]*activeEntry),
 		bgCtx:  ctx,
 		cancel: cancel,
@@ -279,8 +274,7 @@ func (s *service) runUp(name string, meta *storage.InstanceMeta, lw *LogWriter, 
 
 	instanceDir := s.home.InstanceDir(name)
 	upOpts := devcontainer.UpOptions{
-		WorkspaceFolder: s.cfg.WorkspaceFolder,
-		ConfigPath:      s.cfg.ConfigPath,
+		Global: s.opts,
 		Labels: map[string]string{
 			"norn.id":   meta.ID,
 			"norn.name": meta.Name,
