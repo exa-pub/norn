@@ -1,5 +1,7 @@
 import { ActionIcon, Box, Group, Loader, Tabs, Text, Tooltip } from "@mantine/core";
+import { IconCircleFilled, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Terminal as TerminalProto } from "../../gen/norn/terminals/v1/terminals_pb";
 import type { StreamLogsResponse } from "../../gen/norn/containers/v1/containers_pb";
 import { createTerminal, connectWebSocket } from "../../lib/terminal";
@@ -60,12 +62,12 @@ export function BottomPanel({
           >
             Logs
           </Text>
-          {logsActive && <Text c="green" size="xs">●</Text>}
+          {logsActive && <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />}
         </Group>
         {activeBottomTab === "terminals" && (
           <Tooltip label="New terminal">
             <ActionIcon size="sm" variant="subtle" onClick={onNewTerminal} loading={creatingTerminal}>
-              +
+              <IconPlus size={14} />
             </ActionIcon>
           </Tooltip>
         )}
@@ -138,18 +140,16 @@ function TerminalsContent({
             key={t.id}
             value={t.id}
             rightSection={
-              <Text
-                size="xs"
-                c="dimmed"
+              <IconX
+                size={12}
+                color="var(--mantine-color-dimmed)"
                 style={{ cursor: "pointer" }}
                 onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTerminal(t.id); }}
-              >
-                ×
-              </Text>
+              />
             }
           >
             <Group gap={4}>
-              <Text c="green" size="xs">●</Text>
+              <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />
               <Text size="xs">{t.name || "bash"}</Text>
             </Group>
           </Tabs.Tab>
@@ -186,40 +186,76 @@ function TerminalView({ ttyId }: { ttyId: string }) {
 
 function LogsContent({ logs }: { logs: StreamLogsResponse[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true);
 
+  const virtualizer = useVirtualizer({
+    count: logs.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 18,
+    overscan: 30,
+  });
+
+  // Auto-scroll to bottom when new logs arrive (if user hasn't scrolled up)
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (stickToBottom.current && logs.length > 0) {
+      virtualizer.scrollToIndex(logs.length - 1, { align: "end" });
     }
-  }, [logs.length]);
+  }, [logs.length, virtualizer]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  };
+
+  if (logs.length === 0) {
+    return (
+      <Box style={{ height: "100%", padding: "8px 12px", background: "#1e1e1e" }}>
+        <Text size="xs" c="dimmed">No logs yet. Logs stream when an instance is selected and running.</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box
       ref={scrollRef}
+      onScroll={handleScroll}
       style={{
         height: "100%",
         overflow: "auto",
-        padding: "8px 12px",
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         fontSize: 12,
         lineHeight: 1.5,
         background: "#1e1e1e",
       }}
     >
-      {logs.length === 0 ? (
-        <Text size="xs" c="dimmed">No logs yet. Logs stream when an instance is selected and running.</Text>
-      ) : (
-        logs.map((entry, i) => (
-          <div key={i} style={{ color: entry.isStderr ? "#f87171" : "#d4d4d4", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-            {entry.timestamp && (
-              <span style={{ color: "#6b7280", marginRight: 8 }}>
-                {new Date(Number(entry.timestamp.seconds) * 1000).toLocaleTimeString()}
-              </span>
-            )}
-            {entry.line}
-          </div>
-        ))
-      )}
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const entry = logs[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.index}
+              style={{
+                position: "absolute",
+                top: virtualRow.start,
+                left: 0,
+                right: 0,
+                padding: "0 12px",
+                color: entry.isStderr ? "#f87171" : "#d4d4d4",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+              }}
+            >
+              {entry.timestamp && (
+                <span style={{ color: "#6b7280", marginRight: 8 }}>
+                  {new Date(Number(entry.timestamp.seconds) * 1000).toLocaleTimeString()}
+                </span>
+              )}
+              {entry.line}
+            </div>
+          );
+        })}
+      </div>
     </Box>
   );
 }

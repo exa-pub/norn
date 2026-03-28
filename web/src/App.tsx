@@ -1,4 +1,5 @@
-import { Box } from "@mantine/core";
+import { Box, Button, Group, Modal, Text } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { AgentTabs } from "./components/AgentTabs/AgentTabs";
@@ -9,6 +10,7 @@ import { CreateAgentModal } from "./components/Modals/CreateAgent";
 import { useInstances } from "./hooks/useInstances";
 import { useAgents } from "./hooks/useAgents";
 import { useTerminals } from "./hooks/useTerminals";
+import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { agentClient, containerClient, terminalClient } from "./client";
 import { ContainerStatus } from "./gen/norn/containers/v1/containers_pb";
 import type { AgentSession } from "./gen/norn/agents/v1/agents_pb";
@@ -20,8 +22,47 @@ const MIN_BOTTOM = 80;
 const MAX_BOTTOM_RATIO = 0.7;
 
 export function App() {
-  const instances = useInstances();
+  const { instances: polledInstances, loading: instancesLoading } = useInstances();
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
+
+  // Optimistic overlays: status overrides and hidden (deleted) instances
+  const [optimisticStatus, setOptimisticStatus] = useState<Map<string, ContainerStatus>>(new Map());
+  const [hiddenInstances, setHiddenInstances] = useState<Set<string>>(new Set());
+
+  // Clear optimistic overrides once polling catches up
+  useEffect(() => {
+    if (optimisticStatus.size === 0) return;
+    const stale: string[] = [];
+    for (const [name, status] of optimisticStatus) {
+      const real = polledInstances.find((i) => i.name === name);
+      if (real && real.status === status) stale.push(name);
+    }
+    if (stale.length > 0) {
+      setOptimisticStatus((prev) => { const m = new Map(prev); stale.forEach((k) => m.delete(k)); return m; });
+    }
+  }, [polledInstances, optimisticStatus]);
+
+  // Clear hidden instances once they disappear from polling
+  useEffect(() => {
+    if (hiddenInstances.size === 0) return;
+    const polledNames = new Set(polledInstances.map((i) => i.name));
+    const stale = [...hiddenInstances].filter((n) => !polledNames.has(n));
+    if (stale.length > 0) {
+      setHiddenInstances((prev) => { const s = new Set(prev); stale.forEach((k) => s.delete(k)); return s; });
+    }
+  }, [polledInstances, hiddenInstances]);
+
+  const instances = useMemo(() => {
+    return polledInstances
+      .filter((i) => !hiddenInstances.has(i.name))
+      .map((i) => {
+        const override = optimisticStatus.get(i.name);
+        if (override !== undefined && i.status !== override) {
+          return { ...i, status: override } as typeof i;
+        }
+        return i;
+      });
+  }, [polledInstances, optimisticStatus, hiddenInstances]);
   const agents = useAgents(selectedInstance);
   const terminals = useTerminals(selectedInstance);
 
@@ -37,6 +78,7 @@ export function App() {
   // Modals
   const [createInstanceOpen, setCreateInstanceOpen] = useState(false);
   const [createAgentFor, setCreateAgentFor] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Resizable panels
   const [sidebarWidth, setSidebarWidth] = useState(260);
@@ -62,12 +104,31 @@ export function App() {
   const currentActiveTab = selectedInstance ? (activeAgentTab.get(selectedInstance) ?? null) : null;
   const liveAgentCount = agents.filter((a) => a.running).length;
 
+  // Detect agent completion (running → stopped) and notify
+  const prevAgentsRef = useRef<Map<string, boolean>>(new Map());
+  useEffect(() => {
+    const prev = prevAgentsRef.current;
+    for (const agent of agents) {
+      const wasRunning = prev.get(agent.id);
+      if (wasRunning && !agent.running) {
+        notifications.show({
+          title: "Agent finished",
+          message: agent.name || agent.id.slice(0, 8),
+          color: "blue",
+        });
+      }
+    }
+    prevAgentsRef.current = new Map(agents.map((a) => [a.id, a.running]));
+  }, [agents]);
+
   // Resolve active agent name for status bar
   const activeAgentName = useMemo(() => {
     if (!currentActiveTab) return null;
     const agent = agents.find((a) => a.id === currentActiveTab);
     return agent?.name || currentActiveTab.slice(0, 8);
   }, [currentActiveTab, agents]);
+
+  useDocumentTitle(selectedInstance, activeAgentName, liveAgentCount);
 
   // Auto-select first terminal
   useEffect(() => {
@@ -191,7 +252,7 @@ export function App() {
       const res = await terminalClient.createTerminal({ instanceName: selectedInstance, name: "" });
       if (res.terminal) setActiveTerminal(res.terminal.id);
     } catch (e: any) {
-      console.error("createTerminal failed:", e);
+      notifications.show({ title: "Terminal error", message: e?.message ?? "Failed to create terminal", color: "red" });
     } finally {
       setCreatingTerminal(false);
     }
@@ -210,7 +271,7 @@ export function App() {
     try {
       await agentClient.launchAgent({ instanceName: selectedInstance, sessionId: agentId, prompt: "" });
     } catch (e: any) {
-      console.error("launchAgent failed:", e);
+      notifications.show({ title: "Agent error", message: e?.message ?? "Failed to launch agent", color: "red" });
     } finally {
       setLaunchingAgents((prev) => {
         const next = new Set(prev);
@@ -225,36 +286,48 @@ export function App() {
     try {
       await agentClient.stopAgent({ instanceName: selectedInstance, sessionId: agentId });
     } catch (e: any) {
-      console.error("stopAgent failed:", e);
+      notifications.show({ title: "Agent error", message: e?.message ?? "Failed to stop agent", color: "red" });
     }
   }, [selectedInstance]);
 
   // Instance actions (for sidebar)
   const handleStartInstance = useCallback(async (name: string) => {
+    setOptimisticStatus((prev) => new Map(prev).set(name, ContainerStatus.STARTING));
     try {
       await containerClient.startContainer({ name, removeExisting: true });
     } catch (e: any) {
-      console.error("startContainer failed:", e);
+      setOptimisticStatus((prev) => { const m = new Map(prev); m.delete(name); return m; });
+      notifications.show({ title: "Instance error", message: e?.message ?? "Failed to start instance", color: "red" });
     }
   }, []);
 
   const handleStopInstance = useCallback(async (name: string) => {
+    setOptimisticStatus((prev) => new Map(prev).set(name, ContainerStatus.STOPPED));
     try {
       await containerClient.stopContainer({ name });
     } catch (e: any) {
-      console.error("stopContainer failed:", e);
+      setOptimisticStatus((prev) => { const m = new Map(prev); m.delete(name); return m; });
+      notifications.show({ title: "Instance error", message: e?.message ?? "Failed to stop instance", color: "red" });
     }
   }, []);
 
   const handleDeleteInstance = useCallback(async (name: string) => {
-    if (!confirm(`Delete instance "${name}"?`)) return;
+    setDeleteConfirm(name);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteConfirm) return;
+    const name = deleteConfirm;
+    setDeleteConfirm(null);
+    setHiddenInstances((prev) => new Set(prev).add(name));
+    if (selectedInstance === name) setSelectedInstance(null);
     try {
       await containerClient.deleteContainer({ name });
-      if (selectedInstance === name) setSelectedInstance(null);
     } catch (e: any) {
-      console.error("deleteContainer failed:", e);
+      setHiddenInstances((prev) => { const s = new Set(prev); s.delete(name); return s; });
+      notifications.show({ title: "Instance error", message: e?.message ?? "Failed to delete instance", color: "red" });
     }
-  }, [selectedInstance]);
+  }, [deleteConfirm, selectedInstance]);
 
   // --- Resize handlers ---
   const handleSidebarResize = useCallback((e: React.MouseEvent) => {
@@ -310,6 +383,7 @@ export function App() {
             instances={instances}
             agents={agentsMap}
             selectedInstance={selectedInstance}
+            loading={instancesLoading}
             onSelectInstance={setSelectedInstance}
             onSelectAgent={openAgentTab}
             onNewInstance={() => setCreateInstanceOpen(true)}
@@ -350,6 +424,10 @@ export function App() {
               onCloseTab={closeAgentTab}
               onLaunch={handleLaunch}
               onStop={handleStop}
+              onReorderTabs={(tabs) => {
+                if (!selectedInstance) return;
+                setOpenAgentTabs((prev) => new Map(prev).set(selectedInstance, tabs));
+              }}
             />
           </Box>
 
@@ -398,6 +476,14 @@ export function App() {
       {createAgentFor && (
         <CreateAgentModal opened instanceName={createAgentFor} onClose={() => setCreateAgentFor(null)} />
       )}
+
+      <Modal opened={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Instance" size="sm">
+        <Text size="sm">Are you sure you want to delete <b>{deleteConfirm}</b>? This action cannot be undone.</Text>
+        <Group justify="flex-end" mt="md">
+          <Button variant="default" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+          <Button color="red" onClick={confirmDelete}>Delete</Button>
+        </Group>
+      </Modal>
     </Box>
   );
 }

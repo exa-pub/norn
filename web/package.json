@@ -17,6 +17,8 @@
     "@mantine/core": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
     "@mantine/notifications": "^8.3.18",
+    "@tabler/icons-react": "^3.41.0",
+    "@tanstack/react-virtual": "^3.13.23",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",

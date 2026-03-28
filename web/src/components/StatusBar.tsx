@@ -1,4 +1,5 @@
 import { Group, Text } from "@mantine/core";
+import { IconCircleFilled } from "@tabler/icons-react";
 import type { Container } from "../gen/norn/containers/v1/containers_pb";
 import { ContainerStatus } from "../gen/norn/containers/v1/containers_pb";
 
@@ -22,7 +23,7 @@ export function StatusBar({ instances, liveAgentCount, selectedInstance, selecte
     >
       <Group gap="md">
         <Group gap={4}>
-          <Text c="green" size="xs">●</Text>
+          <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />
           <Text size="xs" c="dimmed">daemon</Text>
         </Group>
         <Text size="xs" c="dimmed">{instances.length} instances ({runningCount} running)</Text>

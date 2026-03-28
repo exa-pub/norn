@@ -88,6 +88,9 @@ export function connectWebSocket(
       } catch {
         // ignore
       }
+      // Always send current size on connect/reconnect so the PTY is in sync
+      const { cols, rows } = terminal;
+      ws!.send(JSON.stringify({ type: "resize", cols, rows }));
     };
 
     ws.onmessage = (e) => {

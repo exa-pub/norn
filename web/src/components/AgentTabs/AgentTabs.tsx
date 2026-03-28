@@ -1,5 +1,6 @@
-import { Box, Button, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
-import { useEffect, useRef } from "react";
+import { ActionIcon, Box, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
+import { IconCircleFilled, IconPlayerStop, IconX } from "@tabler/icons-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
 import { createTerminal, connectWebSocket } from "../../lib/terminal";
 import "@xterm/xterm/css/xterm.css";
@@ -13,6 +14,7 @@ interface AgentTabsProps {
   onCloseTab: (agentId: string) => void;
   onLaunch: (agentId: string) => void;
   onStop: (agentId: string) => void;
+  onReorderTabs?: (tabs: string[]) => void;
 }
 
 export function AgentTabs({
@@ -24,7 +26,38 @@ export function AgentTabs({
   onCloseTab,
   onLaunch,
   onStop,
+  onReorderTabs,
 }: AgentTabsProps) {
+  const dragId = useRef<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((id: string) => {
+    dragId.current = id;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    setDragOverId(id);
+  }, []);
+
+  const handleDrop = useCallback((targetId: string) => {
+    const sourceId = dragId.current;
+    dragId.current = null;
+    setDragOverId(null);
+    if (!sourceId || sourceId === targetId || !onReorderTabs) return;
+    const newTabs = [...openTabs];
+    const fromIdx = newTabs.indexOf(sourceId);
+    const toIdx = newTabs.indexOf(targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    newTabs.splice(fromIdx, 1);
+    newTabs.splice(toIdx, 0, sourceId);
+    onReorderTabs(newTabs);
+  }, [openTabs, onReorderTabs]);
+
+  const handleDragEnd = useCallback(() => {
+    dragId.current = null;
+    setDragOverId(null);
+  }, []);
   if (openTabs.length === 0) {
     return (
       <Center h="100%" c="dimmed">
@@ -52,19 +85,30 @@ export function AgentTabs({
             <Tabs.Tab
               key={id}
               value={id}
+              draggable
+              onDragStart={() => handleDragStart(id)}
+              onDragOver={(e: React.DragEvent) => handleDragOver(e, id)}
+              onDrop={() => handleDrop(id)}
+              onDragEnd={handleDragEnd}
+              style={{ opacity: dragOverId === id ? 0.5 : 1 }}
               rightSection={
-                <Text
-                  size="xs"
-                  c="dimmed"
-                  style={{ cursor: "pointer" }}
-                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTab(id); }}
-                >
-                  ×
-                </Text>
+                <Group gap={4} wrap="nowrap">
+                  {agent?.running && (
+                    <ActionIcon size="xs" variant="subtle" color="orange" onClick={(e: React.MouseEvent) => { e.stopPropagation(); onStop(id); }}>
+                      <IconPlayerStop size={12} />
+                    </ActionIcon>
+                  )}
+                  <IconX
+                    size={12}
+                    color="var(--mantine-color-dimmed)"
+                    style={{ cursor: "pointer" }}
+                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); onCloseTab(id); }}
+                  />
+                </Group>
               }
             >
               <Group gap={4}>
-                {(agent?.running || launchingAgents.has(id)) && <Text c="green" size="xs">●</Text>}
+                {(agent?.running || launchingAgents.has(id)) && <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />}
                 <Text size="sm">{agent?.name || id.slice(0, 8)}</Text>
               </Group>
             </Tabs.Tab>
@@ -80,15 +124,6 @@ export function AgentTabs({
             {agent?.running && agent.ttyId ? (
               <Box style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
                 <AgentTerminal ttyId={agent.ttyId} />
-                <Button
-                  size="xs"
-                  color="red"
-                  variant="light"
-                  style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
-                  onClick={() => onStop(id)}
-                >
-                  Stop
-                </Button>
               </Box>
             ) : isLaunching ? (
               <Center h="100%">

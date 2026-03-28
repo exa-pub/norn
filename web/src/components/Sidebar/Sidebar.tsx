@@ -1,4 +1,5 @@
-import { ActionIcon, Badge, Group, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Group, Menu, NavLink, ScrollArea, Skeleton, Stack, Text, Tooltip } from "@mantine/core";
+import { IconCircleFilled, IconDots, IconLoader2, IconPlayerPlay, IconPlayerStop, IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
 import { ContainerStatus } from "../../gen/norn/containers/v1/containers_pb";
 import type { Container } from "../../gen/norn/containers/v1/containers_pb";
 import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
@@ -8,6 +9,7 @@ interface SidebarProps {
   instances: Container[];
   agents: Map<string, AgentSession[]>;
   selectedInstance: string | null;
+  loading?: boolean;
   onSelectInstance: (name: string) => void;
   onSelectAgent: (instanceName: string, agentId: string) => void;
   onNewInstance: () => void;
@@ -17,10 +19,56 @@ interface SidebarProps {
   onDeleteInstance: (name: string) => void;
 }
 
+function InstanceMenu({
+  inst,
+  onStart,
+  onStop,
+  onDelete,
+}: {
+  inst: Container;
+  onStart: () => void;
+  onStop: () => void;
+  onDelete: () => void;
+}) {
+  const isStopped = inst.status === ContainerStatus.STOPPED || inst.status === ContainerStatus.ERROR;
+  const isRunning = inst.status === ContainerStatus.RUNNING;
+
+  return (
+    <Menu shadow="md" width={160} position="bottom-end" withinPortal>
+      <Menu.Target>
+        <ActionIcon
+          size="xs"
+          variant="subtle"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <IconDots size={14} />
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        {isStopped && (
+          <Menu.Item leftSection={<IconPlayerPlay size={14} />} onClick={onStart}>
+            Start
+          </Menu.Item>
+        )}
+        {isRunning && (
+          <Menu.Item leftSection={<IconPlayerStop size={14} />} onClick={onStop}>
+            Stop
+          </Menu.Item>
+        )}
+        <Menu.Divider />
+        <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={onDelete}>
+          Delete
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 export function Sidebar({
   instances,
   agents,
   selectedInstance,
+  loading,
   onSelectInstance,
   onSelectAgent,
   onNewInstance,
@@ -37,18 +85,21 @@ export function Sidebar({
         </Text>
         <Tooltip label="New instance" position="right">
           <ActionIcon size="sm" variant="subtle" onClick={onNewInstance}>
-            +
+            <IconPlus size={14} />
           </ActionIcon>
         </Tooltip>
       </Group>
 
       <ScrollArea flex={1}>
+        {loading && instances.length === 0 && (
+          <Stack gap="xs" px="md" py="xs">
+            {[1, 2, 3].map((i) => <Skeleton key={i} height={32} radius="sm" />)}
+          </Stack>
+        )}
         {instances.map((inst) => {
           const color = STATUS_COLOR[inst.status] ?? "gray";
           const agentList = agents.get(inst.name) ?? [];
           const isSelected = selectedInstance === inst.name;
-          const isStopped = inst.status === ContainerStatus.STOPPED || inst.status === ContainerStatus.ERROR;
-          const isRunning = inst.status === ContainerStatus.RUNNING;
           const isStarting = inst.status === ContainerStatus.STARTING;
 
           return (
@@ -58,32 +109,17 @@ export function Sidebar({
                 <Group gap={6} justify="space-between" wrap="nowrap" style={{ flex: 1 }}>
                   <Text size="sm" truncate style={{ flex: 1 }}>{inst.name}</Text>
                   <Group gap={2} wrap="nowrap" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                    {isStopped && (
-                      <Tooltip label="Start">
-                        <ActionIcon size="xs" variant="subtle" color="green" onClick={() => onStartInstance(inst.name)}>
-                          ▶
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    {isRunning && (
-                      <Tooltip label="Stop">
-                        <ActionIcon size="xs" variant="subtle" color="orange" onClick={() => onStopInstance(inst.name)}>
-                          ■
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    {isStarting && (
-                      <Text size="xs" c="yellow">⟳</Text>
-                    )}
-                    <Tooltip label="Delete">
-                      <ActionIcon size="xs" variant="subtle" color="red" onClick={() => onDeleteInstance(inst.name)}>
-                        ✕
-                      </ActionIcon>
-                    </Tooltip>
+                    {isStarting && <IconLoader2 size={12} color="var(--mantine-color-yellow-6)" className="spin" />}
+                    <InstanceMenu
+                      inst={inst}
+                      onStart={() => onStartInstance(inst.name)}
+                      onStop={() => onStopInstance(inst.name)}
+                      onDelete={() => onDeleteInstance(inst.name)}
+                    />
                   </Group>
                 </Group>
               }
-              leftSection={<Text c={color} size="xs">●</Text>}
+              leftSection={<IconCircleFilled size={8} color={`var(--mantine-color-${color}-6)`} />}
               rightSection={
                 agentList.length > 0 ? (
                   <Badge size="xs" variant="filled" color="gray">
@@ -100,7 +136,7 @@ export function Sidebar({
                 <NavLink
                   key={agent.id}
                   label={agent.name || agent.id.slice(0, 8)}
-                  leftSection={<Text size="xs">ℛ</Text>}
+                  leftSection={<IconRobot size={14} />}
                   rightSection={
                     <Badge size="xs" color={agent.running ? "green" : "gray"}>
                       {agent.running ? "LIVE" : "IDLE"}
@@ -114,7 +150,7 @@ export function Sidebar({
               ))}
               <NavLink
                 label="New agent session"
-                leftSection={<Text size="xs" c="dimmed">+</Text>}
+                leftSection={<IconPlus size={12} color="var(--mantine-color-dimmed)" />}
                 c="dimmed"
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
