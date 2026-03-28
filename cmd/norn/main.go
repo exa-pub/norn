@@ -58,7 +58,6 @@ func rootCmd() *cobra.Command {
 					return fmt.Errorf("generate secret: %w", err)
 				}
 				secret = generated
-				log.Printf("generated secret: %s", secret)
 			}
 
 			return serve(addr, storageDir, secret, &dcOpts)
@@ -136,7 +135,11 @@ func serve(addr, storageDir, secret string, dcOpts *devcontainer.GlobalOptions) 
 	defer stop()
 
 	go func() {
-		log.Printf("listening on %s", addr)
+		host := addr
+		if host[0] == ':' {
+			host = "localhost" + host
+		}
+		log.Printf("http://%s/#nornSecret=%s", host, secret)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %v", err)
 		}
