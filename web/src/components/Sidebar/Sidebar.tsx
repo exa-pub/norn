@@ -69,6 +69,11 @@ export function Sidebar({
 
   return (
     <Stack gap={0} h="100%">
+      <Group px="md" py={8} gap={8} style={{ borderBottom: "1px solid var(--mantine-color-dark-4)" }}>
+        <img src="/favicon.svg" alt="Norn" width={20} height={20} />
+        <Text size="sm" fw={700}>Norn</Text>
+      </Group>
+
       <Group px="md" py="xs" justify="space-between">
         <Text size="xs" fw={700} tt="uppercase" c="dimmed">
           Instances
