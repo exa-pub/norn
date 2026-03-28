@@ -1,10 +1,14 @@
-<p align="center">
-  <img src="web/public/favicon.svg" alt="Norn" width="80" />
-</p>
 
-<h1 align="center">Norn</h1>
-
-<p align="center">AI agent devcontainer manager. Runs isolated development environments and provides a web UI for managing multiple Claude Code sessions inside them.</p>
+<h1>
+    <img 
+        src="web/public/favicon.svg" 
+        alt="Norn" 
+        width="32" 
+        height="32" 
+        align="absmiddle" 
+    />
+    Norn
+</h1>
 
 ![Screenshot](docs/screenshot.png)
 
