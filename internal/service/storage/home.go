@@ -20,7 +20,18 @@ type FileStore struct {
 }
 
 func NewFileStore(baseDir string) *FileStore {
-	return &FileStore{baseDir: baseDir}
+	s := &FileStore{baseDir: baseDir}
+	s.ensureGitignore()
+	return s
+}
+
+func (s *FileStore) ensureGitignore() {
+	p := filepath.Join(s.baseDir, ".gitignore")
+	if _, err := os.Stat(p); err == nil {
+		return
+	}
+	_ = os.MkdirAll(s.baseDir, 0o755)
+	_ = os.WriteFile(p, []byte("*\n"), 0o644)
 }
 
 func (s *FileStore) BaseDir() string {
