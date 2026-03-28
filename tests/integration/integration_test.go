@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 	ttyMgr = tty.NewManager(dc, dcOpts)
 
 	terminalSvc = terminal.NewService(ttyMgr)
-	agentSvc = agent.NewService(store, store, ttyMgr, dk)
+	agentSvc = agent.NewService(store, store, ttyMgr, dk, dc, dcOpts)
 
 	code := m.Run()
 

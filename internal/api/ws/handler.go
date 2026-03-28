@@ -39,6 +39,7 @@ func Handler(mgr tty.Manager) http.Handler {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		defer stream.Detach()
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -46,7 +47,14 @@ func Handler(mgr tty.Manager) http.Handler {
 		}
 		defer conn.Close()
 
-		// PTY → WebSocket
+		// Send replay buffer so the client sees previous output.
+		if len(stream.Replay) > 0 {
+			if wErr := conn.WriteMessage(websocket.BinaryMessage, stream.Replay); wErr != nil {
+				return
+			}
+		}
+
+		// PTY → WebSocket (live data via subscriber pipe)
 		done := make(chan struct{})
 		go func() {
 			defer close(done)

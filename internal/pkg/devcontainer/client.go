@@ -47,11 +47,22 @@ func (p *ExecProcess) Close() error {
 	return p.PTY.Close()
 }
 
+// RunOptions describes a non-PTY exec (fire-and-forget or collect output).
+type RunOptions struct {
+	Global   *GlobalOptions
+	IDLabels map[string]string
+	Cmd      []string
+	Stdin    io.Reader // optional; nil → closed immediately
+}
+
 // --- Client ---
 
 type Client interface {
 	Up(ctx context.Context, opts UpOptions, stdout, stderr io.Writer) (dockerID string, err error)
 	Exec(ctx context.Context, opts ExecOptions) (*ExecProcess, error)
+	// Run executes a command inside the container without a PTY.
+	// Returns combined stdout and the error (including non-zero exit).
+	Run(ctx context.Context, opts RunOptions) (stdout []byte, stderr []byte, err error)
 }
 
 func New() Client {
@@ -114,6 +125,27 @@ func (c *client) Exec(ctx context.Context, opts ExecOptions) (*ExecProcess, erro
 	}
 
 	return &ExecProcess{PTY: ptmx, Cmd: cmd}, nil
+}
+
+func (c *client) Run(ctx context.Context, opts RunOptions) ([]byte, []byte, error) {
+	args := []string{"exec"}
+	args = append(args, opts.Global.baseArgs()...)
+	for k, v := range opts.IDLabels {
+		args = append(args, "--id-label", k+"="+v)
+	}
+	args = append(args, opts.Cmd...)
+
+	cmd := exec.CommandContext(ctx, "devcontainer", args...)
+	if opts.Stdin != nil {
+		cmd.Stdin = opts.Stdin
+	}
+
+	var stdoutBuf, stderrBuf strings.Builder
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	err := cmd.Run()
+	return []byte(stdoutBuf.String()), []byte(stderrBuf.String()), err
 }
 
 // --- parsing ---

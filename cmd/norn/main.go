@@ -111,7 +111,7 @@ func serve(addr, storageDir, secret string, dcOpts *devcontainer.GlobalOptions) 
 	instanceSvc := instance.NewService(store, store, dc, dk, dcOpts)
 	ttyMgr := tty.NewManager(dc, dcOpts)
 	terminalSvc := terminal.NewService(ttyMgr)
-	agentSvc := agent.NewService(store, store, ttyMgr, dk)
+	agentSvc := agent.NewService(store, store, ttyMgr, dk, dc, dcOpts)
 
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Recoverer)

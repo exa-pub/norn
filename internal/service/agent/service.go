@@ -9,12 +9,15 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/google/uuid"
 
 	"github.com/exa-pub/norn/internal/entity"
+	"github.com/exa-pub/norn/internal/pkg/devcontainer"
 	"github.com/exa-pub/norn/internal/service/storage"
 	"github.com/exa-pub/norn/internal/service/tty"
 	"github.com/exa-pub/norn/pkg/dockerutils"
@@ -35,17 +38,21 @@ type service struct {
 	instStore storage.InstanceStore
 	ttyMgr    tty.Manager
 	docker    *client.Client
+	dc        devcontainer.Client
+	dcOpts    *devcontainer.GlobalOptions
 
 	mu      sync.Mutex
 	running map[string]string // sessionUUID → tty session ID
 }
 
-func NewService(store storage.AgentStore, instStore storage.InstanceStore, ttyMgr tty.Manager, dk *client.Client) Service {
+func NewService(store storage.AgentStore, instStore storage.InstanceStore, ttyMgr tty.Manager, dk *client.Client, dc devcontainer.Client, dcOpts *devcontainer.GlobalOptions) Service {
 	return &service{
 		store:     store,
 		instStore: instStore,
 		ttyMgr:    ttyMgr,
 		docker:    dk,
+		dc:        dc,
+		dcOpts:    dcOpts,
 		running:   make(map[string]string),
 	}
 }
@@ -136,10 +143,17 @@ func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt st
 	}
 	s.mu.Unlock()
 
+	// Probe whether a Claude session with this ID already exists.
+	// Run a non-PTY exec with json-stream format (requires no TTY).
+	// If --resume fails, the session doesn't exist yet → first launch without --resume.
+	sessionExists := s.probeSessionExists(ctx, instanceName, sessionID)
+
 	cmd := []string{
 		"claude",
-		"--resume", sessionID,
 		"--dangerously-skip-permissions",
+	}
+	if sessionExists {
+		cmd = append(cmd, "--resume", sessionID)
 	}
 	if prompt != "" {
 		cmd = append(cmd, "-p", prompt)
@@ -186,6 +200,31 @@ func (s *service) Stop(ctx context.Context, instanceName, sessionID string) (*en
 	}
 
 	return &entity.AgentSession{ID: meta.ID, Name: meta.Name, Running: false}, nil
+}
+
+// probeSessionExists checks if a Claude session with the given ID already exists
+// by running a non-PTY exec with json-stream format. If --resume fails, the session
+// doesn't exist yet.
+func (s *service) probeSessionExists(ctx context.Context, instanceName, sessionID string) bool {
+	probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	_, stderr, err := s.dc.Run(probeCtx, devcontainer.RunOptions{
+		Global:   s.dcOpts,
+		IDLabels: map[string]string{"norn.name": instanceName},
+		Cmd: []string{
+			"claude",
+			"--input-format", "json-stream",
+			"--output-format", "json-stream",
+			"--verbose",
+			"--resume", sessionID,
+		},
+	})
+	if err != nil {
+		log.Printf("probe session %s: err=%v stderr=%s", sessionID, err, string(stderr))
+		return false
+	}
+	return true
 }
 
 // --- private ---

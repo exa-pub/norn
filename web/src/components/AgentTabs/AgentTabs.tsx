@@ -78,7 +78,7 @@ export function AgentTabs({
         return (
           <Tabs.Panel key={id} value={id}>
             {agent?.running && agent.ttyId ? (
-              <Box style={{ position: "relative", height: "100%" }}>
+              <Box style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
                 <AgentTerminal ttyId={agent.ttyId} />
                 <Button
                   size="xs"

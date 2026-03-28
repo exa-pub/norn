@@ -93,7 +93,8 @@ export function Sidebar({
               }
               active={isSelected}
               onClick={() => onSelectInstance(inst.name)}
-              defaultOpened={isSelected}
+              opened={isSelected}
+              disableRightSectionRotation
             >
               {agentList.map((agent) => (
                 <NavLink
