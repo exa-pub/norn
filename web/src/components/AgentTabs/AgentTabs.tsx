@@ -1,4 +1,4 @@
-import { Box, Button, Center, Group, Stack, Tabs, Text } from "@mantine/core";
+import { Box, Button, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
 import { createTerminal, connectWebSocket } from "../../lib/terminal";
@@ -6,12 +6,12 @@ import "@xterm/xterm/css/xterm.css";
 
 interface AgentTabsProps {
   agents: AgentSession[];
-  openTabs: string[]; // agent IDs
+  openTabs: string[];
   activeTab: string | null;
+  launchingAgents: Set<string>;
   onSelectTab: (agentId: string) => void;
   onCloseTab: (agentId: string) => void;
   onLaunch: (agentId: string) => void;
-  onLaunchWithPrompt: (agentId: string) => void;
   onStop: (agentId: string) => void;
 }
 
@@ -19,10 +19,10 @@ export function AgentTabs({
   agents,
   openTabs,
   activeTab,
+  launchingAgents,
   onSelectTab,
   onCloseTab,
   onLaunch,
-  onLaunchWithPrompt,
   onStop,
 }: AgentTabsProps) {
   if (openTabs.length === 0) {
@@ -36,7 +36,15 @@ export function AgentTabs({
   const agentMap = new Map(agents.map((a) => [a.id, a]));
 
   return (
-    <Tabs value={activeTab} onChange={(v) => v && onSelectTab(v)} style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <Tabs
+      value={activeTab}
+      onChange={(v) => v && onSelectTab(v)}
+      style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}
+      styles={{
+        root: { height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" },
+        panel: { flex: 1, minHeight: 0, overflow: "hidden", position: "relative" },
+      }}
+    >
       <Tabs.List>
         {openTabs.map((id) => {
           const agent = agentMap.get(id);
@@ -56,7 +64,7 @@ export function AgentTabs({
               }
             >
               <Group gap={4}>
-                {agent?.running && <Text c="green" size="xs">●</Text>}
+                {(agent?.running || launchingAgents.has(id)) && <Text c="green" size="xs">●</Text>}
                 <Text size="sm">{agent?.name || id.slice(0, 8)}</Text>
               </Group>
             </Tabs.Tab>
@@ -66,18 +74,41 @@ export function AgentTabs({
 
       {openTabs.map((id) => {
         const agent = agentMap.get(id);
+        const isLaunching = launchingAgents.has(id);
         return (
-          <Tabs.Panel key={id} value={id} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <Tabs.Panel key={id} value={id}>
             {agent?.running && agent.ttyId ? (
-              <AgentTerminal ttyId={agent.ttyId} onStop={() => onStop(id)} />
+              <Box style={{ position: "relative", height: "100%" }}>
+                <AgentTerminal ttyId={agent.ttyId} />
+                <Button
+                  size="xs"
+                  color="red"
+                  variant="light"
+                  style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
+                  onClick={() => onStop(id)}
+                >
+                  Stop
+                </Button>
+              </Box>
+            ) : isLaunching ? (
+              <Center h="100%">
+                <Stack align="center" gap="md">
+                  <Loader size="md" />
+                  <Text c="dimmed" size="sm">Launching agent...</Text>
+                </Stack>
+              </Center>
             ) : (
               <Center h="100%">
                 <Stack align="center" gap="md">
-                  <Text c="dimmed" fs="italic">Session idle. Launch to resume conversation.</Text>
-                  <Group>
-                    <Button variant="light" onClick={() => onLaunch(id)}>Launch</Button>
-                    <Button variant="subtle" onClick={() => onLaunchWithPrompt(id)}>Launch with prompt...</Button>
-                  </Group>
+                  <Text c="dimmed" fs="italic">Session idle.</Text>
+                  <Text
+                    c="blue"
+                    size="sm"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => onLaunch(id)}
+                  >
+                    Launch
+                  </Text>
                 </Stack>
               </Center>
             )}
@@ -88,36 +119,27 @@ export function AgentTabs({
   );
 }
 
-function AgentTerminal({ ttyId, onStop }: { ttyId: string; onStop: () => void }) {
+function AgentTerminal({ ttyId }: { ttyId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const { terminal, fitAddon } = createTerminal(containerRef.current);
-    const ws = connectWebSocket(ttyId, terminal, fitAddon, true); // readonly
+    // Clear any leftover DOM from previous terminal
+    containerRef.current.innerHTML = "";
 
-    const handleResize = () => fitAddon.fit();
-    window.addEventListener("resize", handleResize);
+    const handle = createTerminal(containerRef.current);
+    const cleanupWs = connectWebSocket(ttyId, handle.terminal, handle.fitAddon);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      ws.close();
-      terminal.dispose();
+      cleanupWs();
+      handle.dispose();
     };
   }, [ttyId]);
 
   return (
-    <Box style={{ height: "100%", position: "relative" }}>
-      <Box ref={containerRef} style={{ height: "100%" }} />
-      <Button
-        size="xs"
-        color="red"
-        variant="light"
-        style={{ position: "absolute", top: 8, right: 8 }}
-        onClick={onStop}
-      >
-        Stop
-      </Button>
-    </Box>
+    <Box
+      ref={containerRef}
+      style={{ position: "absolute", inset: 0 }}
+    />
   );
 }
