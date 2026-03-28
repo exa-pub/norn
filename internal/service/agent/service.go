@@ -18,9 +18,9 @@ import (
 
 	"github.com/exa-pub/norn/internal/entity"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
+	"github.com/exa-pub/norn/internal/pkg/dockerutils"
 	"github.com/exa-pub/norn/internal/service/storage"
 	"github.com/exa-pub/norn/internal/service/tty"
-	"github.com/exa-pub/norn/internal/pkg/dockerutils"
 )
 
 type Service interface {
@@ -154,7 +154,10 @@ func (s *service) Launch(ctx context.Context, instanceName, sessionID, prompt st
 	}
 	if sessionExists {
 		cmd = append(cmd, "--resume", sessionID)
+	} else {
+		cmd = append(cmd, "--session-id", sessionID)
 	}
+
 	if prompt != "" {
 		cmd = append(cmd, "-p", prompt)
 	}
