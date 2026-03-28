@@ -34,7 +34,10 @@ NORN_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/exa-pub/norn/ma
 ### Run
 
 ```bash
-norn --workspace-folder examples/simple --storage-dir .norn
+# Just run inside project with .devcontainer/
+norn
+
+# norn --workspace-folder examples/simple --storage-dir .norn
 ```
 
 Open the URL printed in the terminal. The auth secret is passed via URL fragment on first launch.
@@ -75,6 +78,17 @@ make test      # run tests
 ```
 
 The `NORN_SECRET` environment variable can be used instead of `--auth-secret`.
+
+## Environment variables for devcontainers
+
+Norn automatically sets these environment variables when creating an instance. Use them in your `devcontainer.json` via `${localEnv:VAR}`:
+
+| Variable | Description |
+|----------|-------------|
+| `INSTANCE_MNT_PATH` | Host path to persistent storage for this instance |
+| `DOTS_PATH` | Host path to shared dotfiles directory (common across all instances) |
+
+See [examples/simple](examples/simple) for a working `devcontainer.json` that uses these variables for mounts.
 
 ## Architecture
 
