@@ -92,19 +92,23 @@ See [examples/simple](examples/simple) for a working `devcontainer.json` that us
 
 ## Architecture
 
+Norn manages three kinds of objects:
+
+- **Instance** — a named, persistent devcontainer environment. State is not stored but observed: is a startup process running? Is a Docker container alive? Is there a `last_error` file? The answer determines whether the instance is Starting, Running, Error, or Stopped.
+- **Agent Session** — a persistent Claude Code conversation (`--resume <session_id>`). Survives server restarts. May or may not have a running TTY at any given moment.
+- **Terminal Session** — an ephemeral interactive shell. Lives only in memory; lost on restart.
+
+Both agents and terminals use a **TTY Session** as the underlying PTY channel, exposed to the browser via WebSocket.
+
 ```
-Norn Server
-├── API (ConnectRPC + WebSocket)
-│   ├── ContainerService   — instance lifecycle
-│   ├── AgentService       — Claude Code sessions
-│   └── TerminalService    — interactive shells
-├── Services
-│   ├── instance/   — devcontainer management via Docker
-│   ├── agent/      — agent session state and PTY
-│   ├── terminal/   — terminal session state and PTY
-│   ├── tty/        — PTY multiplexing with ring buffer
-│   └── storage/    — file-based persistence
-└── Web UI (React + TypeScript + Vite)
+.norn/
+├── shared/dotfiles/
+└── instances/{name}/
+    ├── identity.json          # uuid, name, created_at (immutable)
+    ├── last_error             # plain text, nullable
+    ├── mnt/                   # persistent volume for the container
+    ├── logs/                  # startup attempt logs (JSONL)
+    └── agents/{uuid}.json     # agent session identity (name is mutable)
 ```
 
 ## License
