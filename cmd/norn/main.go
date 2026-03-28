@@ -10,9 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/spf13/cobra"
 
 	nornconnect "github.com/exa-pub/norn/internal/api/connect"
+	"github.com/exa-pub/norn/internal/api/middleware"
 	"github.com/exa-pub/norn/internal/api/ws"
 	"github.com/exa-pub/norn/internal/gen/norn/agents/v1/agentsv1connect"
 	"github.com/exa-pub/norn/internal/gen/norn/containers/v1/containersv1connect"
@@ -37,6 +40,7 @@ func rootCmd() *cobra.Command {
 	var (
 		addr       string
 		storageDir string
+		secret     string
 		dcOpts     devcontainer.GlobalOptions
 	)
 
@@ -44,7 +48,20 @@ func rootCmd() *cobra.Command {
 		Use:   "norn",
 		Short: "Norn — AI agent devcontainer manager",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return serve(addr, storageDir, &dcOpts)
+			// Resolve secret: flag > env > generate.
+			if secret == "" {
+				secret = os.Getenv("NORN_SECRET")
+			}
+			if secret == "" {
+				generated, err := middleware.GenerateSecret()
+				if err != nil {
+					return fmt.Errorf("generate secret: %w", err)
+				}
+				secret = generated
+				log.Printf("generated secret: %s", secret)
+			}
+
+			return serve(addr, storageDir, secret, &dcOpts)
 		},
 		SilenceUsage: true,
 	}
@@ -54,6 +71,7 @@ func rootCmd() *cobra.Command {
 	// Norn flags
 	f.StringVar(&addr, "addr", ":8080", "listen address")
 	f.StringVar(&storageDir, "storage-dir", ".norn", "NornHome directory")
+	f.StringVar(&secret, "auth-secret", "", "authentication secret (default: $NORN_SECRET or auto-generated)")
 
 	// Devcontainer flags
 	f.StringVar(&dcOpts.WorkspaceFolder, "workspace-folder", ".", "devcontainer workspace folder")
@@ -70,7 +88,7 @@ func rootCmd() *cobra.Command {
 	return cmd
 }
 
-func serve(addr, storageDir string, dcOpts *devcontainer.GlobalOptions) error {
+func serve(addr, storageDir, secret string, dcOpts *devcontainer.GlobalOptions) error {
 	store := storage.NewFileStore(storageDir)
 	dk, err := dockerutils.New()
 	if err != nil {
@@ -79,33 +97,40 @@ func serve(addr, storageDir string, dcOpts *devcontainer.GlobalOptions) error {
 	dc := devcontainer.New()
 
 	instanceSvc := instance.NewService(store, store, dc, dk, dcOpts)
-
 	ttyMgr := tty.NewManager(dc, dcOpts)
 	terminalSvc := terminal.NewService(ttyMgr)
 	agentSvc := agent.NewService(store, store, ttyMgr, dk)
 
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
+
+	// Middleware
+	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.Auth(secret))
+
+	// ConnectRPC services
 	{
 		path, handler := containersv1connect.NewContainerServiceHandler(
 			nornconnect.NewContainerHandler(instanceSvc),
 		)
-		mux.Handle(path, handler)
+		r.Handle(path+"*", handler)
 	}
 	{
 		path, handler := agentsv1connect.NewAgentServiceHandler(
 			nornconnect.NewAgentHandler(agentSvc),
 		)
-		mux.Handle(path, handler)
+		r.Handle(path+"*", handler)
 	}
 	{
 		path, handler := terminalsv1connect.NewTerminalServiceHandler(
 			nornconnect.NewTerminalHandler(terminalSvc),
 		)
-		mux.Handle(path, handler)
+		r.Handle(path+"*", handler)
 	}
-	mux.Handle("/ws/", ws.Handler(ttyMgr))
 
-	srv := &http.Server{Addr: addr, Handler: mux}
+	// WebSocket PTY bridge
+	r.Handle("/ws/*", ws.Handler(ttyMgr))
+
+	srv := &http.Server{Addr: addr, Handler: r}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
