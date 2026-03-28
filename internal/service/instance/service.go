@@ -15,7 +15,7 @@ import (
 	"github.com/exa-pub/norn/internal/entity"
 	"github.com/exa-pub/norn/internal/pkg/devcontainer"
 	"github.com/exa-pub/norn/internal/service/storage"
-	"github.com/exa-pub/norn/pkg/dockerutils"
+	"github.com/exa-pub/norn/internal/pkg/dockerutils"
 )
 
 var validName = regexp.MustCompile(`^[a-z0-9][a-z0-9\-]{0,62}$`)

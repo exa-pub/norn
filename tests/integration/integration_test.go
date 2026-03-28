@@ -17,7 +17,7 @@ import (
 	"github.com/exa-pub/norn/internal/service/storage"
 	"github.com/exa-pub/norn/internal/service/terminal"
 	"github.com/exa-pub/norn/internal/service/tty"
-	"github.com/exa-pub/norn/pkg/dockerutils"
+	"github.com/exa-pub/norn/internal/pkg/dockerutils"
 )
 
 var (
