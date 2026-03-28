@@ -14,6 +14,7 @@ service TerminalService {
   rpc GetTerminal(GetTerminalRequest) returns (GetTerminalResponse);
   rpc ListTerminals(ListTerminalsRequest) returns (ListTerminalsResponse);
   rpc CloseTerminal(CloseTerminalRequest) returns (CloseTerminalResponse);
+  rpc RenameTerminal(RenameTerminalRequest) returns (RenameTerminalResponse);
 }
 
 message CreateTerminalRequest {
@@ -28,3 +29,9 @@ message CreateTerminalResponse { Terminal terminal = 1; }
 message GetTerminalResponse { Terminal terminal = 1; }
 message ListTerminalsResponse { repeated Terminal terminals = 1; }
 message CloseTerminalResponse {}
+
+message RenameTerminalRequest {
+  string id   = 1;
+  string name = 2;
+}
+message RenameTerminalResponse { Terminal terminal = 1; }

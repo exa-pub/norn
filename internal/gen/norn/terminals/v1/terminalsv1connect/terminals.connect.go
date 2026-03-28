@@ -45,6 +45,9 @@ const (
 	// TerminalServiceCloseTerminalProcedure is the fully-qualified name of the TerminalService's
 	// CloseTerminal RPC.
 	TerminalServiceCloseTerminalProcedure = "/norn.terminals.v1.TerminalService/CloseTerminal"
+	// TerminalServiceRenameTerminalProcedure is the fully-qualified name of the TerminalService's
+	// RenameTerminal RPC.
+	TerminalServiceRenameTerminalProcedure = "/norn.terminals.v1.TerminalService/RenameTerminal"
 )
 
 // TerminalServiceClient is a client for the norn.terminals.v1.TerminalService service.
@@ -53,6 +56,7 @@ type TerminalServiceClient interface {
 	GetTerminal(context.Context, *connect.Request[v1.GetTerminalRequest]) (*connect.Response[v1.GetTerminalResponse], error)
 	ListTerminals(context.Context, *connect.Request[v1.ListTerminalsRequest]) (*connect.Response[v1.ListTerminalsResponse], error)
 	CloseTerminal(context.Context, *connect.Request[v1.CloseTerminalRequest]) (*connect.Response[v1.CloseTerminalResponse], error)
+	RenameTerminal(context.Context, *connect.Request[v1.RenameTerminalRequest]) (*connect.Response[v1.RenameTerminalResponse], error)
 }
 
 // NewTerminalServiceClient constructs a client for the norn.terminals.v1.TerminalService service.
@@ -90,6 +94,12 @@ func NewTerminalServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(terminalServiceMethods.ByName("CloseTerminal")),
 			connect.WithClientOptions(opts...),
 		),
+		renameTerminal: connect.NewClient[v1.RenameTerminalRequest, v1.RenameTerminalResponse](
+			httpClient,
+			baseURL+TerminalServiceRenameTerminalProcedure,
+			connect.WithSchema(terminalServiceMethods.ByName("RenameTerminal")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -99,6 +109,7 @@ type terminalServiceClient struct {
 	getTerminal    *connect.Client[v1.GetTerminalRequest, v1.GetTerminalResponse]
 	listTerminals  *connect.Client[v1.ListTerminalsRequest, v1.ListTerminalsResponse]
 	closeTerminal  *connect.Client[v1.CloseTerminalRequest, v1.CloseTerminalResponse]
+	renameTerminal *connect.Client[v1.RenameTerminalRequest, v1.RenameTerminalResponse]
 }
 
 // CreateTerminal calls norn.terminals.v1.TerminalService.CreateTerminal.
@@ -121,12 +132,18 @@ func (c *terminalServiceClient) CloseTerminal(ctx context.Context, req *connect.
 	return c.closeTerminal.CallUnary(ctx, req)
 }
 
+// RenameTerminal calls norn.terminals.v1.TerminalService.RenameTerminal.
+func (c *terminalServiceClient) RenameTerminal(ctx context.Context, req *connect.Request[v1.RenameTerminalRequest]) (*connect.Response[v1.RenameTerminalResponse], error) {
+	return c.renameTerminal.CallUnary(ctx, req)
+}
+
 // TerminalServiceHandler is an implementation of the norn.terminals.v1.TerminalService service.
 type TerminalServiceHandler interface {
 	CreateTerminal(context.Context, *connect.Request[v1.CreateTerminalRequest]) (*connect.Response[v1.CreateTerminalResponse], error)
 	GetTerminal(context.Context, *connect.Request[v1.GetTerminalRequest]) (*connect.Response[v1.GetTerminalResponse], error)
 	ListTerminals(context.Context, *connect.Request[v1.ListTerminalsRequest]) (*connect.Response[v1.ListTerminalsResponse], error)
 	CloseTerminal(context.Context, *connect.Request[v1.CloseTerminalRequest]) (*connect.Response[v1.CloseTerminalResponse], error)
+	RenameTerminal(context.Context, *connect.Request[v1.RenameTerminalRequest]) (*connect.Response[v1.RenameTerminalResponse], error)
 }
 
 // NewTerminalServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -160,6 +177,12 @@ func NewTerminalServiceHandler(svc TerminalServiceHandler, opts ...connect.Handl
 		connect.WithSchema(terminalServiceMethods.ByName("CloseTerminal")),
 		connect.WithHandlerOptions(opts...),
 	)
+	terminalServiceRenameTerminalHandler := connect.NewUnaryHandler(
+		TerminalServiceRenameTerminalProcedure,
+		svc.RenameTerminal,
+		connect.WithSchema(terminalServiceMethods.ByName("RenameTerminal")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/norn.terminals.v1.TerminalService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TerminalServiceCreateTerminalProcedure:
@@ -170,6 +193,8 @@ func NewTerminalServiceHandler(svc TerminalServiceHandler, opts ...connect.Handl
 			terminalServiceListTerminalsHandler.ServeHTTP(w, r)
 		case TerminalServiceCloseTerminalProcedure:
 			terminalServiceCloseTerminalHandler.ServeHTTP(w, r)
+		case TerminalServiceRenameTerminalProcedure:
+			terminalServiceRenameTerminalHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,4 +218,8 @@ func (UnimplementedTerminalServiceHandler) ListTerminals(context.Context, *conne
 
 func (UnimplementedTerminalServiceHandler) CloseTerminal(context.Context, *connect.Request[v1.CloseTerminalRequest]) (*connect.Response[v1.CloseTerminalResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("norn.terminals.v1.TerminalService.CloseTerminal is not implemented"))
+}
+
+func (UnimplementedTerminalServiceHandler) RenameTerminal(context.Context, *connect.Request[v1.RenameTerminalRequest]) (*connect.Response[v1.RenameTerminalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("norn.terminals.v1.TerminalService.RenameTerminal is not implemented"))
 }

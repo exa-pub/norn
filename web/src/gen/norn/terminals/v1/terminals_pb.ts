@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file norn/terminals/v1/terminals.proto.
  */
 export const file_norn_terminals_v1_terminals: GenFile = /*@__PURE__*/
-  fileDesc("CiFub3JuL3Rlcm1pbmFscy92MS90ZXJtaW5hbHMucHJvdG8SEW5vcm4udGVybWluYWxzLnYxIksKCFRlcm1pbmFsEgoKAmlkGAEgASgJEhUKDWluc3RhbmNlX25hbWUYAiABKAkSDAoEbmFtZRgDIAEoCRIOCgZ0dHlfaWQYBCABKAkiPAoVQ3JlYXRlVGVybWluYWxSZXF1ZXN0EhUKDWluc3RhbmNlX25hbWUYASABKAkSDAoEbmFtZRgCIAEoCSIgChJHZXRUZXJtaW5hbFJlcXVlc3QSCgoCaWQYASABKAkiLQoUTGlzdFRlcm1pbmFsc1JlcXVlc3QSFQoNaW5zdGFuY2VfbmFtZRgBIAEoCSIiChRDbG9zZVRlcm1pbmFsUmVxdWVzdBIKCgJpZBgBIAEoCSJHChZDcmVhdGVUZXJtaW5hbFJlc3BvbnNlEi0KCHRlcm1pbmFsGAEgASgLMhsubm9ybi50ZXJtaW5hbHMudjEuVGVybWluYWwiRAoTR2V0VGVybWluYWxSZXNwb25zZRItCgh0ZXJtaW5hbBgBIAEoCzIbLm5vcm4udGVybWluYWxzLnYxLlRlcm1pbmFsIkcKFUxpc3RUZXJtaW5hbHNSZXNwb25zZRIuCgl0ZXJtaW5hbHMYASADKAsyGy5ub3JuLnRlcm1pbmFscy52MS5UZXJtaW5hbCIXChVDbG9zZVRlcm1pbmFsUmVzcG9uc2UyngMKD1Rlcm1pbmFsU2VydmljZRJlCg5DcmVhdGVUZXJtaW5hbBIoLm5vcm4udGVybWluYWxzLnYxLkNyZWF0ZVRlcm1pbmFsUmVxdWVzdBopLm5vcm4udGVybWluYWxzLnYxLkNyZWF0ZVRlcm1pbmFsUmVzcG9uc2USXAoLR2V0VGVybWluYWwSJS5ub3JuLnRlcm1pbmFscy52MS5HZXRUZXJtaW5hbFJlcXVlc3QaJi5ub3JuLnRlcm1pbmFscy52MS5HZXRUZXJtaW5hbFJlc3BvbnNlEmIKDUxpc3RUZXJtaW5hbHMSJy5ub3JuLnRlcm1pbmFscy52MS5MaXN0VGVybWluYWxzUmVxdWVzdBooLm5vcm4udGVybWluYWxzLnYxLkxpc3RUZXJtaW5hbHNSZXNwb25zZRJiCg1DbG9zZVRlcm1pbmFsEicubm9ybi50ZXJtaW5hbHMudjEuQ2xvc2VUZXJtaW5hbFJlcXVlc3QaKC5ub3JuLnRlcm1pbmFscy52MS5DbG9zZVRlcm1pbmFsUmVzcG9uc2VC0QEKFWNvbS5ub3JuLnRlcm1pbmFscy52MUIOVGVybWluYWxzUHJvdG9QAVpCZ2l0aHViLmNvbS9leGEtcHViL25vcm4vaW50ZXJuYWwvZ2VuL25vcm4vdGVybWluYWxzL3YxO3Rlcm1pbmFsc3YxogIDTlRYqgIRTm9ybi5UZXJtaW5hbHMuVjHKAhFOb3JuXFRlcm1pbmFsc1xWMeICHU5vcm5cVGVybWluYWxzXFYxXEdQQk1ldGFkYXRh6gITTm9ybjo6VGVybWluYWxzOjpWMWIGcHJvdG8z");
+  fileDesc("CiFub3JuL3Rlcm1pbmFscy92MS90ZXJtaW5hbHMucHJvdG8SEW5vcm4udGVybWluYWxzLnYxIksKCFRlcm1pbmFsEgoKAmlkGAEgASgJEhUKDWluc3RhbmNlX25hbWUYAiABKAkSDAoEbmFtZRgDIAEoCRIOCgZ0dHlfaWQYBCABKAkiPAoVQ3JlYXRlVGVybWluYWxSZXF1ZXN0EhUKDWluc3RhbmNlX25hbWUYASABKAkSDAoEbmFtZRgCIAEoCSIgChJHZXRUZXJtaW5hbFJlcXVlc3QSCgoCaWQYASABKAkiLQoUTGlzdFRlcm1pbmFsc1JlcXVlc3QSFQoNaW5zdGFuY2VfbmFtZRgBIAEoCSIiChRDbG9zZVRlcm1pbmFsUmVxdWVzdBIKCgJpZBgBIAEoCSJHChZDcmVhdGVUZXJtaW5hbFJlc3BvbnNlEi0KCHRlcm1pbmFsGAEgASgLMhsubm9ybi50ZXJtaW5hbHMudjEuVGVybWluYWwiRAoTR2V0VGVybWluYWxSZXNwb25zZRItCgh0ZXJtaW5hbBgBIAEoCzIbLm5vcm4udGVybWluYWxzLnYxLlRlcm1pbmFsIkcKFUxpc3RUZXJtaW5hbHNSZXNwb25zZRIuCgl0ZXJtaW5hbHMYASADKAsyGy5ub3JuLnRlcm1pbmFscy52MS5UZXJtaW5hbCIXChVDbG9zZVRlcm1pbmFsUmVzcG9uc2UiMQoVUmVuYW1lVGVybWluYWxSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiRwoWUmVuYW1lVGVybWluYWxSZXNwb25zZRItCgh0ZXJtaW5hbBgBIAEoCzIbLm5vcm4udGVybWluYWxzLnYxLlRlcm1pbmFsMoUECg9UZXJtaW5hbFNlcnZpY2USZQoOQ3JlYXRlVGVybWluYWwSKC5ub3JuLnRlcm1pbmFscy52MS5DcmVhdGVUZXJtaW5hbFJlcXVlc3QaKS5ub3JuLnRlcm1pbmFscy52MS5DcmVhdGVUZXJtaW5hbFJlc3BvbnNlElwKC0dldFRlcm1pbmFsEiUubm9ybi50ZXJtaW5hbHMudjEuR2V0VGVybWluYWxSZXF1ZXN0GiYubm9ybi50ZXJtaW5hbHMudjEuR2V0VGVybWluYWxSZXNwb25zZRJiCg1MaXN0VGVybWluYWxzEicubm9ybi50ZXJtaW5hbHMudjEuTGlzdFRlcm1pbmFsc1JlcXVlc3QaKC5ub3JuLnRlcm1pbmFscy52MS5MaXN0VGVybWluYWxzUmVzcG9uc2USYgoNQ2xvc2VUZXJtaW5hbBInLm5vcm4udGVybWluYWxzLnYxLkNsb3NlVGVybWluYWxSZXF1ZXN0Gigubm9ybi50ZXJtaW5hbHMudjEuQ2xvc2VUZXJtaW5hbFJlc3BvbnNlEmUKDlJlbmFtZVRlcm1pbmFsEigubm9ybi50ZXJtaW5hbHMudjEuUmVuYW1lVGVybWluYWxSZXF1ZXN0Gikubm9ybi50ZXJtaW5hbHMudjEuUmVuYW1lVGVybWluYWxSZXNwb25zZULRAQoVY29tLm5vcm4udGVybWluYWxzLnYxQg5UZXJtaW5hbHNQcm90b1ABWkJnaXRodWIuY29tL2V4YS1wdWIvbm9ybi9pbnRlcm5hbC9nZW4vbm9ybi90ZXJtaW5hbHMvdjE7dGVybWluYWxzdjGiAgNOVFiqAhFOb3JuLlRlcm1pbmFscy5WMcoCEU5vcm5cVGVybWluYWxzXFYx4gIdTm9yblxUZXJtaW5hbHNcVjFcR1BCTWV0YWRhdGHqAhNOb3JuOjpUZXJtaW5hbHM6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message norn.terminals.v1.Terminal
@@ -186,6 +186,45 @@ export const CloseTerminalResponseSchema: GenMessage<CloseTerminalResponse> = /*
   messageDesc(file_norn_terminals_v1_terminals, 8);
 
 /**
+ * @generated from message norn.terminals.v1.RenameTerminalRequest
+ */
+export type RenameTerminalRequest = Message<"norn.terminals.v1.RenameTerminalRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message norn.terminals.v1.RenameTerminalRequest.
+ * Use `create(RenameTerminalRequestSchema)` to create a new message.
+ */
+export const RenameTerminalRequestSchema: GenMessage<RenameTerminalRequest> = /*@__PURE__*/
+  messageDesc(file_norn_terminals_v1_terminals, 9);
+
+/**
+ * @generated from message norn.terminals.v1.RenameTerminalResponse
+ */
+export type RenameTerminalResponse = Message<"norn.terminals.v1.RenameTerminalResponse"> & {
+  /**
+   * @generated from field: norn.terminals.v1.Terminal terminal = 1;
+   */
+  terminal?: Terminal;
+};
+
+/**
+ * Describes the message norn.terminals.v1.RenameTerminalResponse.
+ * Use `create(RenameTerminalResponseSchema)` to create a new message.
+ */
+export const RenameTerminalResponseSchema: GenMessage<RenameTerminalResponse> = /*@__PURE__*/
+  messageDesc(file_norn_terminals_v1_terminals, 10);
+
+/**
  * @generated from service norn.terminals.v1.TerminalService
  */
 export const TerminalService: GenService<{
@@ -220,6 +259,14 @@ export const TerminalService: GenService<{
     methodKind: "unary";
     input: typeof CloseTerminalRequestSchema;
     output: typeof CloseTerminalResponseSchema;
+  },
+  /**
+   * @generated from rpc norn.terminals.v1.TerminalService.RenameTerminal
+   */
+  renameTerminal: {
+    methodKind: "unary";
+    input: typeof RenameTerminalRequestSchema;
+    output: typeof RenameTerminalResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_norn_terminals_v1_terminals, 0);

@@ -1,6 +1,6 @@
-import { ActionIcon, Box, Group, Loader, Text, Tooltip } from "@mantine/core";
-import { IconCircleFilled, IconPlus, IconX } from "@tabler/icons-react";
-import { useEffect, useRef } from "react";
+import { ActionIcon, Box, Group, Loader, Menu, Text, Tooltip } from "@mantine/core";
+import { IconCircleFilled, IconEdit, IconPlus, IconX } from "@tabler/icons-react";
+import { useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Terminal as TerminalProto } from "../../gen/norn/terminals/v1/terminals_pb";
 import type { StreamLogsResponse } from "../../gen/norn/containers/v1/containers_pb";
@@ -14,6 +14,7 @@ interface BottomPanelProps {
   onSelectTerminal: (id: string) => void;
   onNewTerminal: () => void;
   onCloseTerminal: (id: string) => void;
+  onRenameTerminal?: (id: string) => void;
   // Logs
   logs: StreamLogsResponse[];
   logsActive: boolean;
@@ -28,11 +29,20 @@ export function BottomPanel({
   onSelectTerminal,
   onNewTerminal,
   onCloseTerminal,
+  onRenameTerminal,
   logs,
   logsActive,
   activeBottomTab,
   onSelectBottomTab,
 }: BottomPanelProps) {
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; terminalId: string } | null>(null);
+
+  const handleTerminalContext = (e: React.MouseEvent, terminalId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY, terminalId });
+  };
+
   return (
     <Box style={{ height: "100%", display: "flex", flexDirection: "column", borderTop: "1px solid var(--mantine-color-dark-4)" }}>
       {/* Header: mode tabs + terminal tabs (inline) */}
@@ -66,6 +76,7 @@ export function BottomPanel({
                   flexShrink: 0,
                 }}
                 onClick={() => onSelectTerminal(t.id)}
+                onContextMenu={(e) => handleTerminalContext(e, t.id)}
               >
                 <IconCircleFilled size={6} color="var(--mantine-color-green-6)" />
                 <Text size="xs" c={activeTerminal === t.id ? undefined : "dimmed"}>{t.name || "bash"}</Text>
@@ -114,6 +125,30 @@ export function BottomPanel({
           <LogsContent logs={logs} />
         )}
       </Box>
+
+      {/* Context menu for terminal tabs */}
+      <Menu
+        opened={!!ctxMenu}
+        onChange={(opened) => { if (!opened) setCtxMenu(null); }}
+        position="bottom-start"
+        withinPortal
+        shadow="md"
+        width={160}
+      >
+        <Menu.Target>
+          <div style={{ position: "fixed", left: ctxMenu?.x ?? 0, top: ctxMenu?.y ?? 0, width: 0, height: 0, pointerEvents: "none" }} />
+        </Menu.Target>
+        <Menu.Dropdown>
+          {onRenameTerminal && (
+            <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => { if (ctxMenu) { onRenameTerminal(ctxMenu.terminalId); setCtxMenu(null); } }}>
+              Rename
+            </Menu.Item>
+          )}
+          <Menu.Item color="red" leftSection={<IconX size={14} />} onClick={() => { if (ctxMenu) { onCloseTerminal(ctxMenu.terminalId); setCtxMenu(null); } }}>
+            Close
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
     </Box>
   );
 }

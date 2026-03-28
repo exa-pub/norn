@@ -81,6 +81,8 @@ export function App() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [renameAgent, setRenameAgent] = useState<{ instanceName: string; agentId: string; currentName: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [renameTerminal, setRenameTerminal] = useState<{ id: string; currentName: string } | null>(null);
+  const [renameTerminalValue, setRenameTerminalValue] = useState("");
 
   // Resizable panels
   const [sidebarWidth, setSidebarWidth] = useState(260);
@@ -266,6 +268,23 @@ export function App() {
       if (activeTerminal === id) setActiveTerminal(null);
     } catch { /* ignore */ }
   }, [activeTerminal]);
+
+  const handleRenameTerminalOpen = useCallback((id: string) => {
+    const t = terminals.find((t) => t.id === id);
+    setRenameTerminalValue(t?.name || "");
+    setRenameTerminal({ id, currentName: t?.name || "" });
+  }, [terminals]);
+
+  const confirmRenameTerminal = useCallback(async () => {
+    if (!renameTerminal) return;
+    const { id } = renameTerminal;
+    setRenameTerminal(null);
+    try {
+      await terminalClient.renameTerminal({ id, name: renameTerminalValue });
+    } catch (e: any) {
+      notifications.show({ title: "Terminal error", message: e?.message ?? "Failed to rename terminal", color: "red" });
+    }
+  }, [renameTerminal, renameTerminalValue]);
 
   const handleLaunch = useCallback(async (agentId: string) => {
     if (!selectedInstance) return;
@@ -494,6 +513,7 @@ export function App() {
               onSelectTerminal={setActiveTerminal}
               onNewTerminal={handleNewTerminal}
               onCloseTerminal={handleCloseTerminal}
+              onRenameTerminal={handleRenameTerminalOpen}
               logs={logs}
               logsActive={logsActive}
               activeBottomTab={activeBottomTab}
@@ -536,6 +556,20 @@ export function App() {
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => setRenameAgent(null)}>Cancel</Button>
           <Button onClick={confirmRename}>Rename</Button>
+        </Group>
+      </Modal>
+
+      <Modal opened={!!renameTerminal} onClose={() => setRenameTerminal(null)} title="Rename Terminal" size="sm">
+        <TextInput
+          label="Name"
+          value={renameTerminalValue}
+          onChange={(e) => setRenameTerminalValue(e.currentTarget.value)}
+          onKeyDown={(e) => e.key === "Enter" && confirmRenameTerminal()}
+          autoFocus
+        />
+        <Group justify="flex-end" mt="md">
+          <Button variant="default" onClick={() => setRenameTerminal(null)}>Cancel</Button>
+          <Button onClick={confirmRenameTerminal}>Rename</Button>
         </Group>
       </Modal>
     </Box>

@@ -16,6 +16,7 @@ type Service interface {
 	Get(id string) (*entity.TerminalSession, error)
 	List(instanceName string) []*entity.TerminalSession
 	Close(id string) error
+	Rename(id, name string) (*entity.TerminalSession, error)
 }
 
 type entry struct {
@@ -95,4 +96,15 @@ func (s *service) Close(id string) error {
 	s.mu.Unlock()
 
 	return s.ttyMgr.Close(e.terminal.TTYID)
+}
+
+func (s *service) Rename(id, name string) (*entity.TerminalSession, error) {
+	s.mu.Lock()
+	e, ok := s.sessions[id]
+	s.mu.Unlock()
+	if !ok {
+		return nil, fmt.Errorf("terminal %q: %w", id, entity.ErrNotFound)
+	}
+	e.terminal.Name = name
+	return e.terminal, nil
 }

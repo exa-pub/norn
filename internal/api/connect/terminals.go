@@ -53,6 +53,14 @@ func (h *TerminalHandler) CloseTerminal(ctx context.Context, req *chttp.Request[
 	return chttp.NewResponse(&terminalsv1.CloseTerminalResponse{}), nil
 }
 
+func (h *TerminalHandler) RenameTerminal(ctx context.Context, req *chttp.Request[terminalsv1.RenameTerminalRequest]) (*chttp.Response[terminalsv1.RenameTerminalResponse], error) {
+	t, err := h.svc.Rename(req.Msg.Id, req.Msg.Name)
+	if err != nil {
+		return nil, toConnectError(err)
+	}
+	return chttp.NewResponse(&terminalsv1.RenameTerminalResponse{Terminal: terminalToProto(t)}), nil
+}
+
 func terminalToProto(t *entity.TerminalSession) *terminalsv1.Terminal {
 	return &terminalsv1.Terminal{
 		Id:           t.ID,

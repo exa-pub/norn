@@ -441,6 +441,102 @@ func (*CloseTerminalResponse) Descriptor() ([]byte, []int) {
 	return file_norn_terminals_v1_terminals_proto_rawDescGZIP(), []int{8}
 }
 
+type RenameTerminalRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameTerminalRequest) Reset() {
+	*x = RenameTerminalRequest{}
+	mi := &file_norn_terminals_v1_terminals_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameTerminalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameTerminalRequest) ProtoMessage() {}
+
+func (x *RenameTerminalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_norn_terminals_v1_terminals_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameTerminalRequest.ProtoReflect.Descriptor instead.
+func (*RenameTerminalRequest) Descriptor() ([]byte, []int) {
+	return file_norn_terminals_v1_terminals_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RenameTerminalRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RenameTerminalRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type RenameTerminalResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Terminal      *Terminal              `protobuf:"bytes,1,opt,name=terminal,proto3" json:"terminal,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameTerminalResponse) Reset() {
+	*x = RenameTerminalResponse{}
+	mi := &file_norn_terminals_v1_terminals_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameTerminalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameTerminalResponse) ProtoMessage() {}
+
+func (x *RenameTerminalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_norn_terminals_v1_terminals_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameTerminalResponse.ProtoReflect.Descriptor instead.
+func (*RenameTerminalResponse) Descriptor() ([]byte, []int) {
+	return file_norn_terminals_v1_terminals_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RenameTerminalResponse) GetTerminal() *Terminal {
+	if x != nil {
+		return x.Terminal
+	}
+	return nil
+}
+
 var File_norn_terminals_v1_terminals_proto protoreflect.FileDescriptor
 
 const file_norn_terminals_v1_terminals_proto_rawDesc = "" +
@@ -466,12 +562,18 @@ const file_norn_terminals_v1_terminals_proto_rawDesc = "" +
 	"\bterminal\x18\x01 \x01(\v2\x1b.norn.terminals.v1.TerminalR\bterminal\"R\n" +
 	"\x15ListTerminalsResponse\x129\n" +
 	"\tterminals\x18\x01 \x03(\v2\x1b.norn.terminals.v1.TerminalR\tterminals\"\x17\n" +
-	"\x15CloseTerminalResponse2\x9e\x03\n" +
+	"\x15CloseTerminalResponse\";\n" +
+	"\x15RenameTerminalRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"Q\n" +
+	"\x16RenameTerminalResponse\x127\n" +
+	"\bterminal\x18\x01 \x01(\v2\x1b.norn.terminals.v1.TerminalR\bterminal2\x85\x04\n" +
 	"\x0fTerminalService\x12e\n" +
 	"\x0eCreateTerminal\x12(.norn.terminals.v1.CreateTerminalRequest\x1a).norn.terminals.v1.CreateTerminalResponse\x12\\\n" +
 	"\vGetTerminal\x12%.norn.terminals.v1.GetTerminalRequest\x1a&.norn.terminals.v1.GetTerminalResponse\x12b\n" +
 	"\rListTerminals\x12'.norn.terminals.v1.ListTerminalsRequest\x1a(.norn.terminals.v1.ListTerminalsResponse\x12b\n" +
-	"\rCloseTerminal\x12'.norn.terminals.v1.CloseTerminalRequest\x1a(.norn.terminals.v1.CloseTerminalResponseB\xd1\x01\n" +
+	"\rCloseTerminal\x12'.norn.terminals.v1.CloseTerminalRequest\x1a(.norn.terminals.v1.CloseTerminalResponse\x12e\n" +
+	"\x0eRenameTerminal\x12(.norn.terminals.v1.RenameTerminalRequest\x1a).norn.terminals.v1.RenameTerminalResponseB\xd1\x01\n" +
 	"\x15com.norn.terminals.v1B\x0eTerminalsProtoP\x01ZBgithub.com/exa-pub/norn/internal/gen/norn/terminals/v1;terminalsv1\xa2\x02\x03NTX\xaa\x02\x11Norn.Terminals.V1\xca\x02\x11Norn\\Terminals\\V1\xe2\x02\x1dNorn\\Terminals\\V1\\GPBMetadata\xea\x02\x13Norn::Terminals::V1b\x06proto3"
 
 var (
@@ -486,7 +588,7 @@ func file_norn_terminals_v1_terminals_proto_rawDescGZIP() []byte {
 	return file_norn_terminals_v1_terminals_proto_rawDescData
 }
 
-var file_norn_terminals_v1_terminals_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_norn_terminals_v1_terminals_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_norn_terminals_v1_terminals_proto_goTypes = []any{
 	(*Terminal)(nil),               // 0: norn.terminals.v1.Terminal
 	(*CreateTerminalRequest)(nil),  // 1: norn.terminals.v1.CreateTerminalRequest
@@ -497,24 +599,29 @@ var file_norn_terminals_v1_terminals_proto_goTypes = []any{
 	(*GetTerminalResponse)(nil),    // 6: norn.terminals.v1.GetTerminalResponse
 	(*ListTerminalsResponse)(nil),  // 7: norn.terminals.v1.ListTerminalsResponse
 	(*CloseTerminalResponse)(nil),  // 8: norn.terminals.v1.CloseTerminalResponse
+	(*RenameTerminalRequest)(nil),  // 9: norn.terminals.v1.RenameTerminalRequest
+	(*RenameTerminalResponse)(nil), // 10: norn.terminals.v1.RenameTerminalResponse
 }
 var file_norn_terminals_v1_terminals_proto_depIdxs = []int32{
-	0, // 0: norn.terminals.v1.CreateTerminalResponse.terminal:type_name -> norn.terminals.v1.Terminal
-	0, // 1: norn.terminals.v1.GetTerminalResponse.terminal:type_name -> norn.terminals.v1.Terminal
-	0, // 2: norn.terminals.v1.ListTerminalsResponse.terminals:type_name -> norn.terminals.v1.Terminal
-	1, // 3: norn.terminals.v1.TerminalService.CreateTerminal:input_type -> norn.terminals.v1.CreateTerminalRequest
-	2, // 4: norn.terminals.v1.TerminalService.GetTerminal:input_type -> norn.terminals.v1.GetTerminalRequest
-	3, // 5: norn.terminals.v1.TerminalService.ListTerminals:input_type -> norn.terminals.v1.ListTerminalsRequest
-	4, // 6: norn.terminals.v1.TerminalService.CloseTerminal:input_type -> norn.terminals.v1.CloseTerminalRequest
-	5, // 7: norn.terminals.v1.TerminalService.CreateTerminal:output_type -> norn.terminals.v1.CreateTerminalResponse
-	6, // 8: norn.terminals.v1.TerminalService.GetTerminal:output_type -> norn.terminals.v1.GetTerminalResponse
-	7, // 9: norn.terminals.v1.TerminalService.ListTerminals:output_type -> norn.terminals.v1.ListTerminalsResponse
-	8, // 10: norn.terminals.v1.TerminalService.CloseTerminal:output_type -> norn.terminals.v1.CloseTerminalResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: norn.terminals.v1.CreateTerminalResponse.terminal:type_name -> norn.terminals.v1.Terminal
+	0,  // 1: norn.terminals.v1.GetTerminalResponse.terminal:type_name -> norn.terminals.v1.Terminal
+	0,  // 2: norn.terminals.v1.ListTerminalsResponse.terminals:type_name -> norn.terminals.v1.Terminal
+	0,  // 3: norn.terminals.v1.RenameTerminalResponse.terminal:type_name -> norn.terminals.v1.Terminal
+	1,  // 4: norn.terminals.v1.TerminalService.CreateTerminal:input_type -> norn.terminals.v1.CreateTerminalRequest
+	2,  // 5: norn.terminals.v1.TerminalService.GetTerminal:input_type -> norn.terminals.v1.GetTerminalRequest
+	3,  // 6: norn.terminals.v1.TerminalService.ListTerminals:input_type -> norn.terminals.v1.ListTerminalsRequest
+	4,  // 7: norn.terminals.v1.TerminalService.CloseTerminal:input_type -> norn.terminals.v1.CloseTerminalRequest
+	9,  // 8: norn.terminals.v1.TerminalService.RenameTerminal:input_type -> norn.terminals.v1.RenameTerminalRequest
+	5,  // 9: norn.terminals.v1.TerminalService.CreateTerminal:output_type -> norn.terminals.v1.CreateTerminalResponse
+	6,  // 10: norn.terminals.v1.TerminalService.GetTerminal:output_type -> norn.terminals.v1.GetTerminalResponse
+	7,  // 11: norn.terminals.v1.TerminalService.ListTerminals:output_type -> norn.terminals.v1.ListTerminalsResponse
+	8,  // 12: norn.terminals.v1.TerminalService.CloseTerminal:output_type -> norn.terminals.v1.CloseTerminalResponse
+	10, // 13: norn.terminals.v1.TerminalService.RenameTerminal:output_type -> norn.terminals.v1.RenameTerminalResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_norn_terminals_v1_terminals_proto_init() }
@@ -528,7 +635,7 @@ func file_norn_terminals_v1_terminals_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_norn_terminals_v1_terminals_proto_rawDesc), len(file_norn_terminals_v1_terminals_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
