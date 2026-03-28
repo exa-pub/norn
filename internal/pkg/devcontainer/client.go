@@ -103,7 +103,9 @@ func (c *client) Exec(ctx context.Context, opts ExecOptions) (*ExecProcess, erro
 	}
 	args = append(args, opts.Cmd...)
 
-	cmd := exec.CommandContext(ctx, "devcontainer", args...)
+	// Use background context — the exec process must outlive the HTTP request
+	// that created it. It is terminated explicitly via ExecProcess.Close().
+	cmd := exec.Command("devcontainer", args...)
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{
 		Cols: opts.Cols, Rows: opts.Rows,
 	})

@@ -40,7 +40,7 @@ export function BottomPanel({
         <Tabs
           value={activeTerminal}
           onChange={(v) => v && onSelectTerminal(v)}
-          style={{ flex: 1, display: "flex", flexDirection: "column" }}
+          style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}
         >
           <Tabs.List>
             {terminals.map((t) => (
@@ -70,7 +70,7 @@ export function BottomPanel({
           </Tabs.List>
 
           {terminals.map((t) => (
-            <Tabs.Panel key={t.id} value={t.id} style={{ flex: 1 }}>
+            <Tabs.Panel key={t.id} value={t.id} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
               <TerminalView ttyId={t.ttyId} />
             </Tabs.Panel>
           ))}

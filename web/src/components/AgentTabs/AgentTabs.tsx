@@ -36,7 +36,7 @@ export function AgentTabs({
   const agentMap = new Map(agents.map((a) => [a.id, a]));
 
   return (
-    <Tabs value={activeTab} onChange={(v) => v && onSelectTab(v)} style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Tabs value={activeTab} onChange={(v) => v && onSelectTab(v)} style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <Tabs.List>
         {openTabs.map((id) => {
           const agent = agentMap.get(id);
@@ -67,7 +67,7 @@ export function AgentTabs({
       {openTabs.map((id) => {
         const agent = agentMap.get(id);
         return (
-          <Tabs.Panel key={id} value={id} style={{ flex: 1 }}>
+          <Tabs.Panel key={id} value={id} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
             {agent?.running && agent.ttyId ? (
               <AgentTerminal ttyId={agent.ttyId} onStop={() => onStop(id)} />
             ) : (

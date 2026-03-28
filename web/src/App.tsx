@@ -68,11 +68,15 @@ export function App() {
   }, [selectedInstance]);
 
   const handleNewTerminal = useCallback(async () => {
+    console.log("handleNewTerminal, selectedInstance:", selectedInstance);
     if (!selectedInstance) return;
     try {
       const res = await terminalClient.createTerminal({ instanceName: selectedInstance, name: "" });
+      console.log("createTerminal response:", res);
       if (res.terminal) setActiveTerminal(res.terminal.id);
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.error("createTerminal failed:", e);
+    }
   }, [selectedInstance]);
 
   const handleCloseTerminal = useCallback(async (id: string) => {
@@ -97,8 +101,13 @@ export function App() {
   }, [selectedInstance]);
 
   return (
-    <Box style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <AppShell navbar={{ width: 260, breakpoint: 0 }} padding={0} style={{ flex: 1, minHeight: 0 }}>
+    <Box style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <AppShell
+        navbar={{ width: 260, breakpoint: 0 }}
+        padding={0}
+        style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        styles={{ main: { display: "flex", flexDirection: "column", overflow: "hidden" } }}
+      >
         <AppShell.Navbar bg="dark.7">
           <Sidebar
             instances={instances}
@@ -111,7 +120,7 @@ export function App() {
           />
         </AppShell.Navbar>
 
-        <AppShell.Main style={{ display: "flex", flexDirection: "column" }}>
+        <AppShell.Main>
           <InstanceHeader instance={instances.find((i) => i.name === selectedInstance)} />
 
           <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
