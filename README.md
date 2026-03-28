@@ -15,6 +15,8 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/exa-pub/norn)](go.mod)
 [![License](https://img.shields.io/github/license/exa-pub/norn)](LICENSE)
 
+Norn spins up isolated [devcontainers](https://containers.dev) and lets you run multiple [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions inside them through a web UI. Each session gets its own terminal, persistent storage, and automatic resume on restart.
+
 ![Screenshot](docs/screenshot.png)
 
 ## Features
