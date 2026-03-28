@@ -140,4 +140,8 @@ vite.config.ts.timestamp-*
 
 .devcontainer/.persist/
 
+bin/
+
 *.tmp/
+.norn/
+/norn

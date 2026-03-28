@@ -27,7 +27,8 @@
         "golang.go",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "anthropic.claude-code"
+        "anthropic.claude-code",
+        "pbkit.vscode-pbkit"
       ]
     }
   }

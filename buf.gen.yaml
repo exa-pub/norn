@@ -1,0 +1,23 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/exa-pub/norn/internal/gen
+inputs:
+  - directory: proto
+plugins:
+  # Go
+  - local: protoc-gen-go
+    out: internal/gen
+    opt:
+      - paths=source_relative
+  - local: protoc-gen-connect-go
+    out: internal/gen
+    opt:
+      - paths=source_relative
+  # TypeScript (protoc-gen-es v2 generates both messages and service descriptors)
+  - local: protoc-gen-es
+    out: web/src/gen
+    opt:
+      - target=ts
