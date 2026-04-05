@@ -79,12 +79,50 @@ jobs:
       - name: Run e2e tests
         run: NORN_E2E_IMAGE=norn:ci go test -v -timeout 15m ./tests/e2e/...
 
+  build-binaries:
+    needs: [build-web]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          BINARY="norn-${GOOS}-${GOARCH}"
+          go build -trimpath -ldflags="-s -w" -o "${BINARY}" ./cmd/norn
+          tar -czf "${BINARY}.tar.gz" "${BINARY}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: norn-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+
   release:
-    needs: [test-e2e]
+    needs: [test-e2e, build-binaries]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/download-artifact@v4
@@ -92,13 +130,28 @@ jobs:
           name: norn-docker-image
           path: .
 
-      - name: Load Docker image
-        run: docker load -i norn-ci.tar
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: sha256sum norn-*.tar.gz > checksums.txt
 
       - name: Push to GHCR
         run: |
+          docker load -i norn-ci.tar
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker tag norn:ci ghcr.io/exa-pub/norn:${GITHUB_REF_NAME}
           docker tag norn:ci ghcr.io/exa-pub/norn:latest
           docker push ghcr.io/exa-pub/norn:${GITHUB_REF_NAME}
           docker push ghcr.io/exa-pub/norn:latest
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            norn-*.tar.gz
+            checksums.txt
