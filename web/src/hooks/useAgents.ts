@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { agentClient } from "../client";
-import type { AgentSession } from "../gen/norn/agents/v1/agents_pb";
+import type { AgentSession } from "../gen/norn/server/agents/v1/agents_pb";
 
 export function useAgents(instanceName: string | null, intervalMs = 3000) {
   const [agents, setAgents] = useState<AgentSession[]>([]);
@@ -10,7 +10,7 @@ export function useAgents(instanceName: string | null, intervalMs = 3000) {
     let active = true;
     const poll = async () => {
       try {
-        const res = await agentClient.listAgentSessions({ instanceName });
+        const res = await agentClient.list({ instanceName });
         if (active) setAgents(res.sessions);
       } catch {
         if (active) setAgents([]);

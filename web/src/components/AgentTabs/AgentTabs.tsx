@@ -1,11 +1,12 @@
 import { Box, Center, Group, Loader, Stack, Tabs, Text } from "@mantine/core";
 import { IconCircleFilled, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
+import type { AgentSession } from "../../gen/norn/server/agents/v1/agents_pb";
 import { createTerminal, connectWebSocket } from "../../lib/terminal";
 import "@xterm/xterm/css/xterm.css";
 
 interface AgentTabsProps {
+  instanceName: string | null;
   agents: AgentSession[];
   openTabs: string[];
   activeTab: string | null;
@@ -17,6 +18,7 @@ interface AgentTabsProps {
 }
 
 export function AgentTabs({
+  instanceName,
   agents,
   openTabs,
   activeTab,
@@ -114,7 +116,7 @@ export function AgentTabs({
           <Tabs.Panel key={id} value={id}>
             {agent?.running && agent.ttyId ? (
               <Box style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#1e1e1e" }}>
-                <AgentTerminal ttyId={agent.ttyId} />
+                <AgentTerminal instanceName={instanceName!} ttyId={agent.ttyId} />
               </Box>
             ) : isLaunching ? (
               <Center h="100%">
@@ -145,7 +147,7 @@ export function AgentTabs({
   );
 }
 
-function AgentTerminal({ ttyId }: { ttyId: string }) {
+function AgentTerminal({ instanceName, ttyId }: { instanceName: string; ttyId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,7 +156,7 @@ function AgentTerminal({ ttyId }: { ttyId: string }) {
     containerRef.current.innerHTML = "";
 
     const handle = createTerminal(containerRef.current);
-    const cleanupWs = connectWebSocket(ttyId, handle.terminal, handle.fitAddon);
+    const cleanupWs = connectWebSocket(instanceName, ttyId, handle.terminal, handle.fitAddon);
 
     return () => {
       cleanupWs();

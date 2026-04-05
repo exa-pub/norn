@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package norn.daemon.terminals.v1;
+
+// TerminalService — daemon-side terminal management.
+service TerminalService {
+  rpc Create(CreateRequest) returns (CreateResponse); // Create + launch PTY
+  rpc Delete(DeleteRequest) returns (DeleteResponse);  // Stop PTY + remove
+  rpc Rename(RenameRequest) returns (RenameResponse);
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+message Terminal {
+  string id     = 1;
+  string name   = 2;
+  string tty_id = 3;
+}
+
+message CreateRequest {
+  string          name = 1;
+  repeated string cmd  = 2; // Default: ["/bin/bash"]
+}
+message CreateResponse { Terminal terminal = 1; }
+
+message DeleteRequest {
+  string terminal_id = 1;
+}
+message DeleteResponse {}
+
+message RenameRequest {
+  string terminal_id = 1;
+  string name        = 2;
+}
+message RenameResponse { Terminal terminal = 1; }
+
+message ListRequest {}
+message ListResponse { repeated Terminal terminals = 1; }

@@ -1,7 +1,7 @@
 import { Group, Text } from "@mantine/core";
 import { IconCircleFilled } from "@tabler/icons-react";
-import type { Container } from "../gen/norn/containers/v1/containers_pb";
-import { ContainerStatus } from "../gen/norn/containers/v1/containers_pb";
+import type { Container } from "../gen/norn/server/containers/v1/containers_pb";
+import { ContainerStatus } from "../gen/norn/server/containers/v1/containers_pb";
 
 interface StatusBarProps {
   instances: Container[];

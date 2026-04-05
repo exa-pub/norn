@@ -2,8 +2,8 @@ import { ActionIcon, Box, Group, Loader, Menu, Text, Tooltip } from "@mantine/co
 import { IconCircleFilled, IconEdit, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { Terminal as TerminalProto } from "../../gen/norn/terminals/v1/terminals_pb";
-import type { StreamLogsResponse } from "../../gen/norn/containers/v1/containers_pb";
+import type { Terminal as TerminalProto } from "../../gen/norn/server/terminals/v1/terminals_pb";
+import type { StreamLogsResponse, LogFile } from "../../gen/norn/server/containers/v1/containers_pb";
 import { createTerminal, connectWebSocket } from "../../lib/terminal";
 import "@xterm/xterm/css/xterm.css";
 
@@ -18,6 +18,9 @@ interface BottomPanelProps {
   // Logs
   logs: StreamLogsResponse[];
   logsActive: boolean;
+  logFiles: LogFile[];
+  selectedLogId: string | null;
+  onSelectLogFile: (id: string) => void;
   activeBottomTab: string;
   onSelectBottomTab: (tab: string) => void;
 }
@@ -32,6 +35,9 @@ export function BottomPanel({
   onRenameTerminal,
   logs,
   logsActive,
+  logFiles,
+  selectedLogId,
+  onSelectLogFile,
   activeBottomTab,
   onSelectBottomTab,
 }: BottomPanelProps) {
@@ -110,6 +116,33 @@ export function BottomPanel({
           Logs
         </Text>
         {logsActive && <IconCircleFilled size={8} color="var(--mantine-color-green-6)" />}
+
+        {/* Log file selector */}
+        {activeBottomTab === "logs" && logFiles.length > 0 && (
+          <>
+            <Text c="dimmed" size="xs" style={{ flexShrink: 0 }}>|</Text>
+            <select
+              value={selectedLogId ?? ""}
+              onChange={(e) => onSelectLogFile(e.target.value)}
+              style={{
+                background: "var(--mantine-color-dark-6)",
+                color: "var(--mantine-color-text)",
+                border: "1px solid var(--mantine-color-dark-4)",
+                borderRadius: 4,
+                fontSize: 11,
+                padding: "1px 4px",
+                flexShrink: 0,
+                maxWidth: 260,
+              }}
+            >
+              {logFiles.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.date} {f.time} — {f.source}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </Group>
 
       {/* Content — always same structure, no layout shift */}
@@ -188,12 +221,12 @@ function TerminalsContent({
 
   return (
     <Box style={{ position: "absolute", inset: 0, background: "#1e1e1e" }}>
-      <TerminalView key={activeTerm.id} ttyId={activeTerm.ttyId} />
+      <TerminalView key={activeTerm.id} instanceName={activeTerm.instanceName} ttyId={activeTerm.ttyId} />
     </Box>
   );
 }
 
-function TerminalView({ ttyId }: { ttyId: string }) {
+function TerminalView({ instanceName, ttyId }: { instanceName: string; ttyId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -201,7 +234,7 @@ function TerminalView({ ttyId }: { ttyId: string }) {
     containerRef.current.innerHTML = "";
 
     const handle = createTerminal(containerRef.current);
-    const cleanupWs = connectWebSocket(ttyId, handle.terminal, handle.fitAddon);
+    const cleanupWs = connectWebSocket(instanceName, ttyId, handle.terminal, handle.fitAddon);
 
     return () => {
       cleanupWs();

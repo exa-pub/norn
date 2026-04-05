@@ -12,19 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - run: mkdir -p web/dist && touch web/dist/placeholder
-
-      - run: go test ./...
-
   build-web:
     runs-on: ubuntu-latest
     steps:
@@ -43,22 +30,9 @@ jobs:
           name: web-dist
           path: web/dist/
 
-  build-go:
-    needs: [test, build-web]
+  build-docker:
+    needs: [build-web]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: arm64
-          - goos: darwin
-            goarch: amd64
-          - goos: darwin
-            goarch: arm64
-          - goos: windows
-            goarch: amd64
     steps:
       - uses: actions/checkout@v4
 
@@ -71,54 +45,60 @@ jobs:
           name: web-dist
           path: web/dist/
 
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
+      - name: Build Go binary
+        run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/norn ./cmd/norn
+
+      - name: Build Docker image
         run: |
-          EXT=""
-          if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
-          OUTPUT="norn-${GOOS}-${GOARCH}${EXT}"
-          VERSION="${GITHUB_REF_NAME:-dev}"
-          COMMIT="${GITHUB_SHA::8}"
-          LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}"
-          go build -trimpath -ldflags="${LDFLAGS}" -o "bin/${OUTPUT}" ./cmd/norn
+          docker build -t norn:ci .
+          docker save norn:ci -o norn-ci.tar
 
       - uses: actions/upload-artifact@v4
         with:
-          name: norn-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: bin/norn-*
+          name: norn-docker-image
+          path: norn-ci.tar
+
+  test-e2e:
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: norn-docker-image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i norn-ci.tar
+
+      - name: Run e2e tests
+        run: NORN_E2E_IMAGE=norn:ci go test -v -timeout 15m ./tests/e2e/...
 
   release:
-    needs: build-go
+    needs: [test-e2e]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      packages: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: norn-*
-          merge-multiple: true
-          path: artifacts/
+          name: norn-docker-image
+          path: .
 
-      - name: Create archives
+      - name: Load Docker image
+        run: docker load -i norn-ci.tar
+
+      - name: Push to GHCR
         run: |
-          cd artifacts
-          for f in norn-*; do
-            if [[ "$f" == *.exe ]]; then
-              zip "${f%.exe}.zip" "$f"
-            else
-              chmod +x "$f"
-              tar -czf "${f}.tar.gz" "$f"
-            fi
-          done
-          sha256sum norn-*.tar.gz norn-*.zip > checksums.txt
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            artifacts/*.tar.gz
-            artifacts/*.zip
-            artifacts/checksums.txt
-          generate_release_notes: true
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag norn:ci ghcr.io/exa-pub/norn:${GITHUB_REF_NAME}
+          docker tag norn:ci ghcr.io/exa-pub/norn:latest
+          docker push ghcr.io/exa-pub/norn:${GITHUB_REF_NAME}
+          docker push ghcr.io/exa-pub/norn:latest

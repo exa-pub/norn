@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package norn.daemon.agents.v1;
+
+// AgentService — daemon-side agent management.
+// Daemon owns agent session metadata and lifecycle.
+service AgentService {
+  rpc Create(CreateRequest) returns (CreateResponse); // Create metadata + launch process
+  rpc Start(StartRequest) returns (StartResponse);    // Launch process (existing session)
+  rpc Stop(StopRequest) returns (StopResponse);       // Stop process, keep metadata
+  rpc Delete(DeleteRequest) returns (DeleteResponse);  // Stop process + delete metadata
+  rpc Rename(RenameRequest) returns (RenameResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+message AgentSession {
+  string id      = 1;
+  string name    = 2;
+  bool   running = 3;
+  string tty_id  = 4; // Set only when running=true
+}
+
+message CreateRequest {
+  string name   = 1;
+  string prompt = 2; // Optional initial prompt
+}
+message CreateResponse { AgentSession session = 1; }
+
+message StartRequest {
+  string session_id = 1;
+  string prompt     = 2; // Optional prompt
+}
+message StartResponse { AgentSession session = 1; }
+
+message StopRequest {
+  string session_id = 1;
+}
+message StopResponse { AgentSession session = 1; }
+
+message DeleteRequest {
+  string session_id = 1;
+}
+message DeleteResponse {}
+
+message RenameRequest {
+  string session_id = 1;
+  string name       = 2;
+}
+message RenameResponse { AgentSession session = 1; }
+
+message GetRequest {
+  string session_id = 1;
+}
+message GetResponse { AgentSession session = 1; }
+
+message ListRequest {}
+message ListResponse { repeated AgentSession sessions = 1; }

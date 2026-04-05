@@ -16,7 +16,7 @@ export function CreateInstanceModal({ opened, onClose }: Props) {
     setLoading(true);
     setError("");
     try {
-      await containerClient.createContainer({ name });
+      await containerClient.create({ name });
       setName("");
       onClose();
     } catch (e: any) {

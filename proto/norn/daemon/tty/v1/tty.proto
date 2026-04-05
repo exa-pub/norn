@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package norn.daemon.tty.v1;
+
+// TTYService — bidirectional PTY I/O stream.
+// Server opens one Attach stream per WebSocket client.
+// Multiple streams can attach to the same tty_id (fan-out).
+service TTYService {
+  rpc Attach(stream TTYInput) returns (stream TTYOutput);
+}
+
+// --- Client → Daemon ---
+
+message TTYInput {
+  oneof payload {
+    TTYInputAttach attach = 1; // First message: which TTY to attach to
+    TTYInputData   data   = 2; // Byte input (keystrokes, paste)
+    TTYInputResize resize = 3; // Resize PTY window
+  }
+}
+
+message TTYInputAttach {
+  string tty_id = 1;
+}
+
+message TTYInputData {
+  bytes data = 1;
+}
+
+message TTYInputResize {
+  uint32 cols = 1;
+  uint32 rows = 2;
+}
+
+// --- Daemon → Client ---
+
+message TTYOutput {
+  oneof payload {
+    TTYOutputData   data   = 1; // Byte output from PTY
+    TTYOutputReplay replay = 2; // Ring buffer snapshot on attach
+    TTYOutputClosed closed = 3; // PTY process exited
+  }
+}
+
+message TTYOutputData {
+  bytes data = 1;
+}
+
+message TTYOutputReplay {
+  bytes data = 1;
+}
+
+message TTYOutputClosed {
+  int32 exit_code = 1;
+}

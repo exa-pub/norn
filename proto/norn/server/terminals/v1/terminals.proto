@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package norn.server.terminals.v1;
+
+message Terminal {
+  string id            = 1;
+  string instance_name = 2;
+  string name          = 3;
+  string tty_id        = 4;
+}
+
+service TerminalService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Rename(RenameRequest) returns (RenameResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+message CreateRequest {
+  string instance_name = 1;
+  string name          = 2;
+}
+message CreateResponse { Terminal terminal = 1; }
+
+message DeleteRequest {
+  string instance_name = 1;
+  string id            = 2;
+}
+message DeleteResponse {}
+
+message RenameRequest {
+  string instance_name = 1;
+  string id            = 2;
+  string name          = 3;
+}
+message RenameResponse { Terminal terminal = 1; }
+
+message GetRequest {
+  string instance_name = 1;
+  string id            = 2;
+}
+message GetResponse { Terminal terminal = 1; }
+
+message ListRequest {
+  string instance_name = 1;
+}
+message ListResponse { repeated Terminal terminals = 1; }

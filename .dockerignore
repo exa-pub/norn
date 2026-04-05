@@ -1,0 +1,4 @@
+.norn
+**/.norn
+**/daemon.sock
+web/node_modules

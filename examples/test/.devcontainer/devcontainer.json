@@ -1,0 +1,24 @@
+{
+  "name": "norn-test",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "initializeCommand": "mkdir -p \"${localEnv:INSTANCE_MNT_PATH:-.norn/mnt}\" \"${localEnv:DOTS_PATH:-.norn/dotfiles}\"",
+  "mounts": [
+    {
+      "type": "bind",
+      "source": "${localEnv:INSTANCE_MNT_PATH}",
+      "target": "/home/vscode/mnt"
+    },
+    {
+      "type": "bind",
+      "source": "${localEnv:DOTS_PATH}",
+      "target": "/home/vscode/dotfiles"
+    }
+  ],
+  "postCreateCommand": "sh .devcontainer/postCreate.sh",
+  "remoteUser": "norn",
+  "remoteEnv": {
+    "WORKSPACE_FOLDER": "${containerWorkspaceFolder}"
+  }
+}

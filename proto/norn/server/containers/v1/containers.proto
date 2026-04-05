@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package norn.server.containers.v1;
+
+import "google/protobuf/timestamp.proto";
+
+enum ContainerStatus {
+  CONTAINER_STATUS_UNSPECIFIED = 0;
+  CONTAINER_STATUS_STARTING    = 1;
+  CONTAINER_STATUS_RUNNING     = 2;
+  CONTAINER_STATUS_STOPPED     = 3;
+  CONTAINER_STATUS_ERROR       = 4;
+}
+
+message Container {
+  string          id            = 1;
+  string          name          = 2;
+  google.protobuf.Timestamp created_at = 3;
+  string          docker_id     = 4;
+  ContainerStatus status        = 5;
+  string          error_message = 6;
+}
+
+service ContainerService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc StreamLogs(StreamLogsRequest) returns (stream StreamLogsResponse);
+  rpc ListLogs(ListLogsRequest) returns (ListLogsResponse);
+}
+
+message CreateRequest { string name = 1; }
+message CreateResponse { Container container = 1; }
+
+message StartRequest {
+  string name            = 1;
+  bool   remove_existing = 2;
+}
+message StartResponse { Container container = 1; }
+
+message StopRequest { string name = 1; }
+message StopResponse { Container container = 1; }
+
+message DeleteRequest { string name = 1; }
+message DeleteResponse {}
+
+message GetRequest { string name = 1; }
+message GetResponse { Container container = 1; }
+
+message ListRequest {}
+message ListResponse { repeated Container containers = 1; }
+
+message StreamLogsRequest {
+  string name   = 1;
+  string log_id = 2; // ID from ListLogs; empty = latest log (backwards compatible)
+}
+message StreamLogsResponse {
+  string line      = 1;
+  bool   is_stderr = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message ListLogsRequest { string name = 1; }
+message ListLogsResponse { repeated LogFile files = 1; }
+
+message LogFile {
+  string id         = 1; // e.g. "2026-04-05/14-30-00.daemon"
+  string source     = 2; // e.g. "up", "daemon"
+  string date       = 3; // e.g. "2026-04-05"
+  string time       = 4; // e.g. "14:30:00"
+  int64  size_bytes = 5;
+}
