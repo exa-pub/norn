@@ -1,4 +1,4 @@
-import { ContainerStatus } from "../gen/norn/containers/v1/containers_pb";
+import { ContainerStatus } from "../gen/norn/server/containers/v1/containers_pb";
 
 export const STATUS_COLOR: Record<number, string> = {
   [ContainerStatus.STARTING]: "yellow",

@@ -17,7 +17,7 @@ export function CreateAgentModal({ opened, instanceName, onClose }: Props) {
     setLoading(true);
     setError("");
     try {
-      await agentClient.createAgentSession({ instanceName, name });
+      await agentClient.create({ instanceName, name });
       setName("");
       onClose();
     } catch (e: any) {

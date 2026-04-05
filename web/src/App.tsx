@@ -13,9 +13,9 @@ import { useTerminals } from "./hooks/useTerminals";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import { useOptimistic } from "./hooks/useOptimistic";
 import { agentClient, containerClient, terminalClient } from "./client";
-import { ContainerStatus } from "./gen/norn/containers/v1/containers_pb";
-import type { AgentSession } from "./gen/norn/agents/v1/agents_pb";
-import type { StreamLogsResponse } from "./gen/norn/containers/v1/containers_pb";
+import { ContainerStatus } from "./gen/norn/server/containers/v1/containers_pb";
+import type { AgentSession } from "./gen/norn/server/agents/v1/agents_pb";
+import type { StreamLogsResponse, LogFile } from "./gen/norn/server/containers/v1/containers_pb";
 
 const MIN_SIDEBAR = 180;
 const MAX_SIDEBAR = 500;
@@ -71,6 +71,10 @@ export function App() {
   const [logs, setLogs] = useState<StreamLogsResponse[]>([]);
   const [logsActive, setLogsActive] = useState(false);
   const logsAbortRef = useRef<AbortController | null>(null);
+
+  // Log file list + selection
+  const [logFiles, setLogFiles] = useState<LogFile[]>([]);
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
 
   // Agents map for sidebar
   const agentsMap = useMemo(() => {
@@ -131,7 +135,33 @@ export function App() {
     }
   }, [agents, selectedInstance, openAgentTabs]);
 
-  // StreamLogs for selected instance
+  // Fetch log file list when logs tab is opened or instance changes
+  useEffect(() => {
+    if (!selectedInstance || activeBottomTab !== "logs") {
+      setLogFiles([]);
+      setSelectedLogId(null);
+      return;
+    }
+    (async () => {
+      try {
+        const resp = await containerClient.listLogs({ name: selectedInstance });
+        setLogFiles(resp.files);
+        // Auto-select newest log if none selected
+        if (resp.files.length > 0) {
+          setSelectedLogId((prev) => {
+            if (prev && resp.files.some((f) => f.id === prev)) return prev;
+            return resp.files[0].id;
+          });
+        } else {
+          setSelectedLogId(null);
+        }
+      } catch {
+        setLogFiles([]);
+      }
+    })();
+  }, [selectedInstance, activeBottomTab]);
+
+  // StreamLogs for selected instance + log file
   useEffect(() => {
     if (logsAbortRef.current) {
       logsAbortRef.current.abort();
@@ -140,9 +170,7 @@ export function App() {
     setLogs([]);
     setLogsActive(false);
 
-    if (!selectedInstance) return;
-    const inst = instances.find((i) => i.name === selectedInstance);
-    if (!inst || inst.status !== ContainerStatus.RUNNING) return;
+    if (!selectedInstance || activeBottomTab !== "logs") return;
 
     const abort = new AbortController();
     logsAbortRef.current = abort;
@@ -151,7 +179,7 @@ export function App() {
     (async () => {
       try {
         const stream = containerClient.streamLogs(
-          { name: selectedInstance },
+          { name: selectedInstance, logId: selectedLogId ?? "" },
           { signal: abort.signal },
         );
         for await (const entry of stream) {
@@ -169,7 +197,7 @@ export function App() {
     })();
 
     return () => abort.abort();
-  }, [selectedInstance, instances]);
+  }, [selectedInstance, activeBottomTab, selectedLogId]);
 
   // --- Auto-launch agent on tab open ---
   const autoLaunchedRef = useRef<Set<string>>(new Set());
@@ -227,7 +255,7 @@ export function App() {
     if (!selectedInstance) return;
     setCreatingTerminal(true);
     try {
-      const res = await terminalClient.createTerminal({ instanceName: selectedInstance, name: "" });
+      const res = await terminalClient.create({ instanceName: selectedInstance, name: "" });
       if (res.terminal) {
         termOpt.addOptimistic(res.terminal);
         setActiveTerminal(res.terminal.id);
@@ -240,14 +268,15 @@ export function App() {
   }, [selectedInstance, termOpt]);
 
   const handleCloseTerminal = useCallback(async (id: string) => {
+    if (!selectedInstance) return;
     termOpt.hide(id);
     if (activeTerminal === id) setActiveTerminal(null);
     try {
-      await terminalClient.closeTerminal({ id });
+      await terminalClient.delete({ instanceName: selectedInstance, id });
     } catch {
       termOpt.clear(id); // unhide on error
     }
-  }, [activeTerminal, termOpt]);
+  }, [selectedInstance, activeTerminal, termOpt]);
 
   const handleRenameTerminalOpen = useCallback((id: string) => {
     const t = terminals.find((t) => t.id === id);
@@ -262,7 +291,7 @@ export function App() {
     setRenameTerminal(null);
     termOpt.patch(id, { name: newName } as Partial<typeof terminals[0]>);
     try {
-      await terminalClient.renameTerminal({ id, name: newName });
+      await terminalClient.rename({ instanceName: selectedInstance!, id, name: newName });
     } catch (e: any) {
       termOpt.clear(id);
       notifications.show({ title: "Terminal error", message: e?.message ?? "Failed to rename terminal", color: "red" });
@@ -276,7 +305,7 @@ export function App() {
     agentOpt.patch(agentId, { running: true } as Partial<AgentSession>);
     agentOpt.setPending(agentId, true);
     try {
-      await agentClient.launchAgent({ instanceName: selectedInstance, sessionId: agentId, prompt: "" });
+      await agentClient.start({ instanceName: selectedInstance, sessionId: agentId, prompt: "" });
     } catch (e: any) {
       agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to launch agent", color: "red" });
@@ -288,7 +317,7 @@ export function App() {
   const handleStopAgentSidebar = useCallback(async (instanceName: string, agentId: string) => {
     agentOpt.patch(agentId, { running: false } as Partial<AgentSession>);
     try {
-      await agentClient.stopAgent({ instanceName, sessionId: agentId });
+      await agentClient.stop({ instanceName, sessionId: agentId });
     } catch (e: any) {
       agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to stop agent", color: "red" });
@@ -299,7 +328,7 @@ export function App() {
     agentOpt.patch(agentId, { running: true } as Partial<AgentSession>);
     agentOpt.setPending(agentId, true);
     try {
-      await agentClient.launchAgent({ instanceName, sessionId: agentId, prompt: "" });
+      await agentClient.start({ instanceName, sessionId: agentId, prompt: "" });
     } catch (e: any) {
       agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to launch agent", color: "red" });
@@ -321,7 +350,7 @@ export function App() {
     setRenameAgent(null);
     agentOpt.patch(agentId, { name: newName } as Partial<AgentSession>);
     try {
-      await agentClient.updateAgentSessionName({ instanceName, sessionId: agentId, name: newName });
+      await agentClient.rename({ instanceName, sessionId: agentId, name: newName });
     } catch (e: any) {
       agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to rename agent", color: "red" });
@@ -331,7 +360,7 @@ export function App() {
   const handleDeleteAgent = useCallback(async (instanceName: string, agentId: string) => {
     agentOpt.hide(agentId);
     try {
-      await agentClient.deleteAgentSession({ instanceName, sessionId: agentId });
+      await agentClient.delete({ instanceName, sessionId: agentId });
     } catch (e: any) {
       agentOpt.clear(agentId);
       notifications.show({ title: "Agent error", message: e?.message ?? "Failed to delete agent", color: "red" });
@@ -343,7 +372,7 @@ export function App() {
   const handleStartInstance = useCallback(async (name: string) => {
     instOpt.patch(name, { status: ContainerStatus.STARTING } as any);
     try {
-      await containerClient.startContainer({ name, removeExisting: true });
+      await containerClient.start({ name, removeExisting: true });
     } catch (e: any) {
       instOpt.clear(name);
       notifications.show({ title: "Instance error", message: e?.message ?? "Failed to start instance", color: "red" });
@@ -353,7 +382,7 @@ export function App() {
   const handleStopInstance = useCallback(async (name: string) => {
     instOpt.patch(name, { status: ContainerStatus.STOPPED } as any);
     try {
-      await containerClient.stopContainer({ name });
+      await containerClient.stop({ name });
     } catch (e: any) {
       instOpt.clear(name);
       notifications.show({ title: "Instance error", message: e?.message ?? "Failed to stop instance", color: "red" });
@@ -371,7 +400,7 @@ export function App() {
     instOpt.hide(name);
     if (selectedInstance === name) setSelectedInstance(null);
     try {
-      await containerClient.deleteContainer({ name });
+      await containerClient.delete({ name });
     } catch (e: any) {
       instOpt.clear(name);
       notifications.show({ title: "Instance error", message: e?.message ?? "Failed to delete instance", color: "red" });
@@ -466,6 +495,7 @@ export function App() {
           {/* Agent tabs area */}
           <Box style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
             <AgentTabs
+              instanceName={selectedInstance}
               agents={agents}
               openTabs={currentOpenTabs}
               activeTab={currentActiveTab}
@@ -509,6 +539,9 @@ export function App() {
               onRenameTerminal={handleRenameTerminalOpen}
               logs={logs}
               logsActive={logsActive}
+              logFiles={logFiles}
+              selectedLogId={selectedLogId}
+              onSelectLogFile={setSelectedLogId}
               activeBottomTab={activeBottomTab}
               onSelectBottomTab={setActiveBottomTab}
             />

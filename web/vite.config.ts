@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/norn.": { target: "http://localhost:8080" },
+      "/connect": { target: "http://localhost:8080" },
       "/ws": { target: "http://localhost:8080", ws: true },
     },
   },

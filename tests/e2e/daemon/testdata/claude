@@ -1,0 +1,5 @@
+#!/bin/sh
+# Mock claude CLI for daemon e2e tests.
+# Behaves like a long-running process: prints a greeting then reads stdin forever.
+echo "Claude mock ready (session: ${@})"
+cat

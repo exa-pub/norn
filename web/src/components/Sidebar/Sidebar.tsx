@@ -1,9 +1,9 @@
 import { Group, Menu, NavLink, ScrollArea, Skeleton, Stack, Text, Tooltip, ActionIcon } from "@mantine/core";
 import { IconChevronRight, IconCircleFilled, IconEdit, IconLoader2, IconPlayerPlay, IconPlayerStop, IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
-import { ContainerStatus } from "../../gen/norn/containers/v1/containers_pb";
-import type { Container } from "../../gen/norn/containers/v1/containers_pb";
-import type { AgentSession } from "../../gen/norn/agents/v1/agents_pb";
+import { ContainerStatus } from "../../gen/norn/server/containers/v1/containers_pb";
+import type { Container } from "../../gen/norn/server/containers/v1/containers_pb";
+import type { AgentSession } from "../../gen/norn/server/agents/v1/agents_pb";
 import { STATUS_COLOR } from "../../lib/status";
 
 interface SidebarProps {

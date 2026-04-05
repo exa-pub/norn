@@ -1,4 +1,4 @@
-.PHONY: all build proto web go test test-integration run-simple clean
+.PHONY: all build proto web go test test-e2e test-e2e-server test-e2e-daemon run-simple clean
 
 all: build
 
@@ -12,17 +12,26 @@ web: proto
 
 # --- Go binary (includes embedded frontend) ---
 go: web
-	go build -o bin/norn ./cmd/norn
+	CGO_ENABLED=0 go build -o bin/norn ./cmd/norn
 
-build: go
+docker: go
+	docker compose build
+
+build: go docker
 
 # --- Tests ---
 test:
 	@mkdir -p web/dist && touch web/dist/placeholder
 	go test ./...
 
-test-integration:
-	go test -tags integration -v -timeout 10m ./tests/integration/
+test-e2e:
+	go test -v -timeout 15m ./tests/e2e/...
+
+test-e2e-daemon:
+	go test -v -timeout 10m ./tests/e2e/daemon/
+
+test-e2e-server:
+	go test -v -timeout 15m ./tests/e2e/server/
 
 # --- Dev ---
 dev-web:
@@ -32,8 +41,8 @@ dev-go:
 	go run ./cmd/norn
 
 # --- Run ---
-run-simple: go
-	./bin/norn --workspace-folder examples/simple --storage-dir .norn
+run-simple: build
+	./bin/norn server --workspace-folder examples/simple --storage-dir .norn
 
 # --- Clean ---
 clean:

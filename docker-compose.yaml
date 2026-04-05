@@ -1,0 +1,17 @@
+services:
+  norn:
+    image: ghcr.io/exa-pub/norn:latest
+    build:
+      context: .
+      args:
+        NORN_BINARY: ${NORN_BINARY:-bin/norn}
+    privileged: true
+    ports:
+      - "${NORN_PORT:-8080}:8080"
+    environment:
+      NORN_ADDR: ":8080"
+      NORN_STORAGE_DIR: /data/.norn
+      NORN_WORKSPACE_FOLDER: /workspace
+    volumes:
+      - ./examples/simple/.norn:/data/.norn
+      - ./examples/simple:/workspace

@@ -27,104 +27,88 @@ Norn spins up isolated [devcontainers](https://containers.dev) and lets you run 
 - **Persistent storage** — instance state, agent sessions and logs survive restarts
 - **Web UI** — sidebar with instances and agents, tabbed agent view, bottom panel with terminals and logs
 
-## Install
+## Quick start
+
+### Docker
+
+```bash
+docker run --privileged -p 8080:8080 \
+  -e EXEC_UID=$(id -u) -e EXEC_GID=$(id -g) \
+  -v $(pwd):/workspace \
+  -v norn-data:/data/.norn \
+  -e NORN_WORKSPACE_FOLDER=/workspace \
+  -e NORN_STORAGE_DIR=/data/.norn \
+  --rm -i \
+  ghcr.io/exa-pub/norn:latest
+```
+
+Open the URL printed in the logs. The image includes Docker-in-Docker and devcontainer CLI.
+
+### Binary
+
+Requires Docker and [devcontainer CLI](https://github.com/devcontainers/cli) on the host.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/exa-pub/norn/main/install.sh | sh
+norn server
 ```
 
-To install a specific version:
+Or with an explicit workspace:
 
 ```bash
-NORN_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/exa-pub/norn/main/install.sh | sh
+norn server --workspace-folder examples/simple
 ```
 
-## Quick start
+## Configuration
 
-### Prerequisites
+All settings can be passed as environment variables or CLI flags. Env vars take precedence over defaults but are overridden by explicit flags.
 
-- Docker
-- [devcontainer CLI](https://github.com/devcontainers/cli)
+| Env Variable | Flag | Default | Description |
+|-------------|------|---------|-------------|
+| `NORN_ADDR` | `--addr` | `:8080` | Listen address |
+| `NORN_STORAGE_DIR` | `--storage-dir` | `.norn` | Data directory |
+| `NORN_SECRET` | `--auth-secret` | auto-generated | Auth secret |
+| `NORN_WORKSPACE_FOLDER` | `--workspace-folder` | `.` | Path to folder with `.devcontainer/` |
+| `NORN_DC_MOUNT_PATH` | `--norn-dc-mount-path` | `/mnt/norn/` | Mount path inside devcontainers |
+| `NORN_DOTFILES_REPO` | `--dotfiles-repository` | | Dotfiles Git repo URL |
+| `EXEC_UID` | | `1000` | UID to run norn process as (Docker only) |
+| `EXEC_GID` | | `1000` | GID to run norn process as (Docker only) |
 
-### Run
+<details>
+<summary>All options</summary>
+
+| Env Variable | Flag | Default | Description |
+|-------------|------|---------|-------------|
+| `NORN_CONFIG` | `--config` | | Path to `devcontainer.json` |
+| `NORN_OVERRIDE_CONFIG` | `--override-config` | | Override `devcontainer.json` |
+| `NORN_DOCKER_PATH` | `--docker-path` | | Docker CLI path |
+| `NORN_DOTFILES_COMMAND` | `--dotfiles-install-command` | | Dotfiles install command |
+| `NORN_DOTFILES_PATH` | `--dotfiles-target-path` | | Dotfiles target path |
+| `NORN_SECRETS_FILE` | `--secrets-file` | | Path to secrets JSON file |
+
+Daemon (inside devcontainers): see [docs/daemon-env.md](docs/daemon-env.md).
+
+</details>
+
+### Docker Compose examples
 
 ```bash
-# Just run inside project with .devcontainer/
-norn
+# Custom port
+NORN_PORT=9090 docker compose up
 
-# norn --workspace-folder examples/simple --storage-dir .norn
+# Your own project
+docker compose run --rm \
+  -v /path/to/project:/workspace \
+  -e NORN_WORKSPACE_FOLDER=/workspace \
+  norn
+
+# With auth secret
+NORN_SECRET=mysecret docker compose up
 ```
 
-Open the URL printed in the terminal. The auth secret is passed via URL fragment on first launch.
+## Contributing
 
-### Build from source
-
-Requires Go 1.26+ and Node.js (LTS).
-
-```bash
-make build
-./bin/norn --workspace-folder examples/simple --storage-dir .norn
-```
-
-### Development
-
-```bash
-make dev-go    # run Go server
-make dev-web   # run Vite dev server with hot reload
-make test      # run tests
-```
-
-## CLI flags
-
-```
---addr                     Listen address (default :8080)
---storage-dir              Data directory (default .norn)
---workspace-folder         Path to folder with .devcontainer/ (default .)
---auth-secret              Auth secret (default: auto-generated, saved to storage-dir)
---config                   Path to devcontainer.json
---override-config          Override devcontainer.json
---docker-path              Path to docker CLI
---remote-env KEY=VALUE     Environment variables for devcontainer exec
---mount                    Additional mount points
---dotfiles-repository      Git repo for dotfiles
---dotfiles-install-command Command to run after cloning dotfiles
---dotfiles-target-path     Dotfiles install path in container
---secrets-file             Path to JSON file with secrets
-```
-
-The `NORN_SECRET` environment variable can be used instead of `--auth-secret`.
-
-## Environment variables for devcontainers
-
-Norn automatically sets these environment variables when creating an instance. Use them in your `devcontainer.json` via `${localEnv:VAR}`:
-
-| Variable | Description |
-|----------|-------------|
-| `INSTANCE_MNT_PATH` | Host path to persistent storage for this instance |
-| `DOTS_PATH` | Host path to shared dotfiles directory (common across all instances) |
-
-See [examples/simple](examples/simple) for a working `devcontainer.json` that uses these variables for mounts.
-
-## Architecture
-
-Norn manages three kinds of objects:
-
-- **Instance** — a named, persistent devcontainer environment. State is not stored but observed: is a startup process running? Is a Docker container alive? Is there a `last_error` file? The answer determines whether the instance is Starting, Running, Error, or Stopped.
-- **Agent Session** — a persistent Claude Code conversation (`--resume <session_id>`). Survives server restarts. May or may not have a running TTY at any given moment.
-- **Terminal Session** — an ephemeral interactive shell. Lives only in memory; lost on restart.
-
-Both agents and terminals use a **TTY Session** as the underlying PTY channel, exposed to the browser via WebSocket.
-
-```
-.norn/
-├── shared/dotfiles/
-└── instances/{name}/
-    ├── identity.json          # uuid, name, created_at (immutable)
-    ├── last_error             # plain text, nullable
-    ├── mnt/                   # persistent volume for the container
-    ├── logs/                  # startup attempt logs (JSONL)
-    └── agents/{uuid}.json     # agent session identity (name is mutable)
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

@@ -90,6 +90,7 @@ const RECONNECT_MAX_MS = 8000;
  * Returns a cleanup function.
  */
 export function connectWebSocket(
+  instanceName: string,
   ttyId: string,
   terminal: Terminal,
   fitAddon: FitAddon,
@@ -102,7 +103,7 @@ export function connectWebSocket(
   function connect() {
     if (disposed) return;
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(`${proto}//${location.host}/ws/${ttyId}`);
+    ws = new WebSocket(`${proto}//${location.host}/ws/${instanceName}/${ttyId}`);
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {

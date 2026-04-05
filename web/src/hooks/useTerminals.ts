@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { terminalClient } from "../client";
-import type { Terminal } from "../gen/norn/terminals/v1/terminals_pb";
+import type { Terminal } from "../gen/norn/server/terminals/v1/terminals_pb";
 
 export function useTerminals(instanceName: string | null, intervalMs = 3000) {
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -10,7 +10,7 @@ export function useTerminals(instanceName: string | null, intervalMs = 3000) {
     let active = true;
     const poll = async () => {
       try {
-        const res = await terminalClient.listTerminals({ instanceName });
+        const res = await terminalClient.list({ instanceName });
         if (active) setTerminals(res.terminals);
       } catch {
         if (active) setTerminals([]);

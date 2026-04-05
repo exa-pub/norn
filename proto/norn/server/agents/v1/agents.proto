@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package norn.server.agents.v1;
+
+message AgentSession {
+  string id      = 1;
+  string name    = 2;
+  bool   running = 3;
+  string tty_id  = 4; // Set only when running=true
+}
+
+service AgentService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Rename(RenameRequest) returns (RenameResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+message CreateRequest {
+  string instance_name = 1;
+  string name          = 2;
+  string prompt        = 3; // Optional initial prompt
+}
+message CreateResponse { AgentSession session = 1; }
+
+message StartRequest {
+  string instance_name = 1;
+  string session_id    = 2;
+  string prompt        = 3;
+}
+message StartResponse { AgentSession session = 1; }
+
+message StopRequest {
+  string instance_name = 1;
+  string session_id    = 2;
+}
+message StopResponse { AgentSession session = 1; }
+
+message DeleteRequest {
+  string instance_name = 1;
+  string session_id    = 2;
+}
+message DeleteResponse {}
+
+message RenameRequest {
+  string instance_name = 1;
+  string session_id    = 2;
+  string name          = 3;
+}
+message RenameResponse { AgentSession session = 1; }
+
+message GetRequest {
+  string instance_name = 1;
+  string session_id    = 2;
+}
+message GetResponse { AgentSession session = 1; }
+
+message ListRequest {
+  string instance_name = 1;
+}
+message ListResponse { repeated AgentSession sessions = 1; }
